@@ -164,15 +164,6 @@ function NFTDashboard() {
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black">
       <Navbar />
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="py-8 md:py-12">
-          <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
-            Your NFT Collection
-          </h1>
-          <p className="mt-2 text-center text-zinc-400">
-            Discover and manage your digital assets
-          </p>
-        </div>
-
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-12">
           {nfts.map((nft) => (
             <NFTCard key={nft.id} nft={nft} />
