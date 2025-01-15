@@ -7,7 +7,6 @@ export const env = createEnv({
     NEXT_PUBLIC_ALCHEMY_ID: z.string().min(1),
     NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL: z.string().url().optional(),
     NEXT_PUBLIC_NODE_URL_POOL: z.string().url().optional(),
-    NEXT_PUBLIC_BLOCKCHAIN_RID: z.string().optional(),
     NEXT_PUBLIC_CHAIN_ID: z.coerce.number().optional(),
   },
 
@@ -18,7 +17,6 @@ export const env = createEnv({
     NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL:
       process.env["NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL"],
     NEXT_PUBLIC_NODE_URL_POOL: process.env["NEXT_PUBLIC_NODE_URL_POOL"],
-    NEXT_PUBLIC_BLOCKCHAIN_RID: process.env["NEXT_PUBLIC_BLOCKCHAIN_RID"],
     NEXT_PUBLIC_CHAIN_ID: process.env["NEXT_PUBLIC_CHAIN_ID"],
   },
 });

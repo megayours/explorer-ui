@@ -55,18 +55,17 @@ const hasActiveSessionStorageLogin = async (account: Account) => {
   return acceptableAds.length > 0;
 };
 
-export const ChromiaProvider: React.FunctionComponent<
-  PropsWithChildren<ChromiaProviderProps>
-> = ({ children, config }) => {
+export function ChromiaProvider({ children, config }: PropsWithChildren<ChromiaProviderProps>) {
   const { connector, isConnected } = useAccount();
   const [authStatus, setAuthStatus] = useState<AuthStatus>("disconnected");
   const queryClient = useQueryClient();
 
   const { data: chromiaClient, isLoading: isChromiaClientLoading } = useQuery({
-    queryKey: ["chromiaClient"],
+    queryKey: ["chromiaClient", config.blockchainRid],
     queryFn: async () => {
       const client = await createClient({
-        ...config, failOverConfig: {
+        ...config,
+        failOverConfig: {
           attemptsPerEndpoint: 20,
           strategy: FailoverStrategy.TryNextOnError,
         }
@@ -214,7 +213,7 @@ export const ChromiaProvider: React.FunctionComponent<
   return (
     <ChromiaContext.Provider value={value}>{children}</ChromiaContext.Provider>
   );
-};
+}
 
 export const useChromia = () => {
   const context = useContext(ChromiaContext);

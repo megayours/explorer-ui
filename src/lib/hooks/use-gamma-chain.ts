@@ -36,13 +36,14 @@ export function useGammaChain(): [GammaChainActions, GammaChainState] {
       }
       const client = createMegaYoursClient(chromiaSession);
       const metadata = await client.getMetadata(project, collection, tokenId);
-      console.log(`Metadata: `, JSON.stringify(metadata, null, 2));
       return metadata;
     },
     transferToken: async (toBlockchainRid: string, project: Project, collection: string, tokenId: bigint) => {
       if (!chromiaSession) {
         throw new Error("Chromia session not initialized");
       }
+
+      console.log(`Transferring token ${tokenId} from ${chromiaSession.account.id} to ${toBlockchainRid}`);
       const client = createMegaYoursClient(chromiaSession);
       const targetChain = await createClient({ directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL, blockchainRid: toBlockchainRid });
       return client.transferCrosschain(targetChain, client.account.id, project, collection, tokenId, BigInt(1))

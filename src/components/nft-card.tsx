@@ -2,49 +2,53 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
+import { ArrowRightLeft, Loader2 } from 'lucide-react'
 import { useGammaChain } from '@/lib/hooks/use-gamma-chain'
+import { useChain } from '@/lib/chain-switcher/chain-context'
+import dapps from '@/config/dapps'
 import type { NFT } from '@/types/nft'
-import { Property } from '@megayours/sdk'
-import { ArrowRightLeft } from 'lucide-react'
 
-interface NFTCardProps {
-  nft: NFT
+type Property = {
+  trait_type: string
+  value: string | number | boolean
 }
 
-export function NFTCard({ nft }: NFTCardProps) {
+type NFTCardProps = {
+  nft: NFT
+  onRefresh: () => void
+}
+
+export function NFTCard({ nft, onRefresh }: NFTCardProps) {
   const [isTransferring, setIsTransferring] = useState(false)
+  const [isSelectingChain, setIsSelectingChain] = useState(false)
+  const [targetChain, setTargetChain] = useState<typeof dapps[0] | null>(null)
   const [actions] = useGammaChain()
+  const { selectedChain } = useChain()
 
   if (!nft) return null
 
-  const handleTransfer = async () => {
-    const blockchainRid = prompt("Enter the target blockchain RID:")
-    if (!blockchainRid) return
+  const availableChains = dapps.filter(
+    chain => chain.blockchainRid !== selectedChain.blockchainRid
+  )
 
+  const handleTransfer = async (chain: typeof dapps[0]) => {
+    setTargetChain(chain)
+    setIsSelectingChain(false)
     try {
       setIsTransferring(true)
       await actions.transferToken(
-        blockchainRid,
+        chain.blockchainRid,
         nft.project,
         nft.collectionName,
         BigInt(nft.tokenId)
       )
-      alert("Transfer successful!")
+      onRefresh()
     } catch (error) {
       console.error("Transfer failed:", error)
-      alert("Transfer failed. Check console for details.")
     } finally {
       setIsTransferring(false)
+      setTargetChain(null)
     }
-  }
-
-  const getAttributes = (properties: { [key: string]: string | number | boolean | Property | Property[] }): any => {
-    if (properties.attributes) {
-      return properties.attributes as Property[]
-    }
-    return Object.entries(properties)
-      .filter(([key]) => key !== 'name' && key !== 'description' && key !== 'image')
-      .map(([key, value]) => ({ trait_type: key, value: value }))
   }
 
   return (
@@ -81,16 +85,51 @@ export function NFTCard({ nft }: NFTCardProps) {
           </div>
         )}
 
-        <button
-          onClick={handleTransfer}
-          disabled={isTransferring}
-          className="w-full px-4 py-2 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/50 
-                   hover:border-zinc-600/50 transition-all duration-300 text-sm font-medium text-white
-                   disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          <ArrowRightLeft className="h-4 w-4" />
-          {isTransferring ? "Transferring..." : "Transfer"}
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setIsSelectingChain(true)}
+            disabled={isTransferring}
+            className="w-full px-4 py-2 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/50 
+                     hover:border-zinc-600/50 transition-all duration-300 text-sm font-medium text-white
+                     disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isTransferring ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Transferring to {targetChain?.name}...
+              </>
+            ) : (
+              <>
+                <ArrowRightLeft className="h-4 w-4" />
+                Transfer
+              </>
+            )}
+          </button>
+
+          {isSelectingChain && !isTransferring && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setIsSelectingChain(false)}
+              />
+              <div className="absolute bottom-full mb-2 left-0 right-0 rounded-lg overflow-hidden border border-zinc-700/50 bg-zinc-800/95 backdrop-blur-xl shadow-lg z-50">
+                <div className="py-1">
+                  {availableChains.map((chain) => (
+                    <button
+                      key={chain.blockchainRid}
+                      onClick={() => handleTransfer(chain)}
+                      disabled={isTransferring}
+                      className="w-full px-4 py-2 text-left text-sm transition-colors
+                        text-zinc-300 hover:bg-zinc-700/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Transfer to {chain.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

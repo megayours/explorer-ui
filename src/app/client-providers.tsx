@@ -9,25 +9,23 @@ import {
 } from "@tanstack/react-query";
 import { ConnectKitProvider } from "connectkit";
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { State as WagmiState } from "wagmi";
 import { WagmiProvider } from "wagmi";
 import { getConfig as getWagmiConfig } from "@/config/wagmi-config";
 import { ChromiaProvider } from "@/lib/chromia-connect/chromia-context";
 import { env } from "@/env";
 import { ChromiaConfig } from "@/lib/chromia-connect/types";
-
+import { ChainProvider, useChain } from "@/lib/chain-switcher/chain-context";
+import dapps from "@/config/dapps";
 
 const makeQueryClient = (): QueryClient =>
   new QueryClient({
     defaultOptions: {
       queries: {
-        // With SSR, we usually want to set some default staleTime
-        // above 0 to avoid refetching immediately on the client
         staleTime: 60 * 1000,
       },
     },
-
     mutationCache: new MutationCache({
       onError: (error, _variables, _context, mutation) => {
         const mutationKey =
@@ -44,7 +42,6 @@ const makeQueryClient = (): QueryClient =>
         }
       },
     }),
-
     queryCache: new QueryCache({
       onError: (error, query) => {
         const queryKey =
@@ -61,19 +58,11 @@ let browserQueryClient: QueryClient | undefined;
 
 const getQueryClient = (): QueryClient => {
   if (isServer) {
-    // Server: always make a new query client
-
     return makeQueryClient();
   }
-
-  // Browser: make a new query client if we don't already have one
-  // This is very important, so we don't re-make a new client if React
-  // suspends during the initial render. This may not be needed if we
-  // have a suspense boundary BELOW the creation of the query client
   if (!browserQueryClient) {
     browserQueryClient = makeQueryClient();
   }
-
   return browserQueryClient;
 };
 
@@ -81,28 +70,33 @@ type ClientProviderProps = {
   initialState?: WagmiState | undefined;
 };
 
+function ChromiaProviderWithChain({ children }: { children: React.ReactNode }) {
+  const { selectedChain } = useChain();
+  const [key, setKey] = useState(0);
+
+  const config: ChromiaConfig = {
+    ...(env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL 
+      ? { directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL } 
+      : { nodeUrlPool: env.NEXT_PUBLIC_NODE_URL_POOL }),
+    blockchainRid: selectedChain.blockchainRid,
+  };
+
+  // Force ChromiaProvider to reinitialize when chain changes
+  useEffect(() => {
+    setKey(prev => prev + 1);
+  }, [selectedChain.blockchainRid]);
+
+  return (
+    <ChromiaProvider key={key} config={config}>
+      {children}
+    </ChromiaProvider>
+  );
+}
+
 export const ClientProviders: React.FunctionComponent<
   React.PropsWithChildren<ClientProviderProps>
 > = ({ children, initialState }) => {
   const [wagmiConfig] = useState(() => getWagmiConfig());
-
-  const nodeConfig = env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL 
-  ? { directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL } 
-  : { nodeUrlPool: env.NEXT_PUBLIC_NODE_URL_POOL };
-
-  const chainConfig = env.NEXT_PUBLIC_BLOCKCHAIN_RID
-    ? { blockchainRid: env.NEXT_PUBLIC_BLOCKCHAIN_RID }
-    : { blockchainIid: env.NEXT_PUBLIC_CHAIN_ID };
-
-  const chromiaConfig: ChromiaConfig = {
-    ...nodeConfig,
-    ...chainConfig,
-  };
-
-  // NOTE: Avoid useState when initializing the query client if you don't
-  //       have a suspense boundary between this and the code that may
-  //       suspend because React will throw away the client on the initial
-  //       render if it suspends and there is no boundary
   const queryClient = getQueryClient();
 
   return (
@@ -115,9 +109,11 @@ export const ClientProviders: React.FunctionComponent<
             overlayBlur: 0,
           }}
         >
-          <ChromiaProvider config={chromiaConfig}>
-            {children}
-          </ChromiaProvider>
+          <ChainProvider>
+            <ChromiaProviderWithChain>
+              {children}
+            </ChromiaProviderWithChain>
+          </ChainProvider>
         </ConnectKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

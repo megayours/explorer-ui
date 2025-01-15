@@ -7,6 +7,8 @@ import { Navbar } from '@/components/navbar';
 import { NFTCard } from '@/components/nft-card';
 import type { NFT } from '@/types/nft';
 import { useChromia } from "@/lib/chromia-connect/chromia-context";
+import { useChain } from "@/lib/chain-switcher/chain-context";
+import { withAuth } from "@/lib/auth/protected-route";
 
 function mapTokenToNFT(token: TokenBalance, metadata?: TokenMetadata): NFT {
   return {
@@ -56,15 +58,23 @@ function ErrorState({ error }: { error: Error }) {
   );
 }
 
-function NFTDashboard() {
+function DashboardContent() {
   const [nfts, setNfts] = useState<NFT[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [actions] = useGammaChain();
+  const { selectedChain } = useChain();
   const paginatorRef = useRef<Paginator<TokenBalance> | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
+
+  useEffect(() => {
+    setNfts([]);
+    setHasMore(true);
+    paginatorRef.current = null;
+    void loadMoreNFTs();
+  }, [selectedChain.blockchainRid]);
 
   const fetchMetadata = async (token: TokenBalance): Promise<NFT> => {
     try {
@@ -166,7 +176,16 @@ function NFTDashboard() {
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pb-12">
           {nfts.map((nft) => (
-            <NFTCard key={nft.id} nft={nft} />
+            <NFTCard 
+              key={nft.id} 
+              nft={nft} 
+              onRefresh={() => {
+                setNfts([]);
+                setHasMore(true);
+                paginatorRef.current = null;
+                void loadMoreNFTs();
+              }}
+            />
           ))}
         </div>
         
@@ -195,7 +214,7 @@ function NFTDashboard() {
                 <span className="text-2xl">🖼️</span>
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">No NFTs Found</h3>
-              <p className="text-zinc-400">Connect your wallet to view your NFT collection</p>
+              <p className="text-zinc-400">No NFTs found in your collection</p>
             </div>
           </div>
         )}
@@ -204,17 +223,4 @@ function NFTDashboard() {
   );
 }
 
-export default function DashboardPage() {
-  const { chromiaSession } = useChromia();
-  const [actions, state] = useGammaChain();
-
-  if (!state.isInitialized || !chromiaSession) {
-    return <LoadingState />;
-  }
-
-  if (state.error) {
-    return <ErrorState error={state.error} />;
-  }
-
-  return <NFTDashboard />;
-}
+export default withAuth(DashboardContent);
