@@ -4,23 +4,32 @@ import { useRouter } from "next/navigation";
 import { ChromiaAuthButton } from "@/lib/chromia-connect/components/chromia-auth-button";
 
 const mainButtonStyles = `
-  transform transition-all duration-300 ease-in-out 
-  hover:scale-105 hover:shadow-[0_0_30px_rgba(56,189,248,0.5)]
-  text-4xl py-12 px-20 
-  bg-gradient-to-r from-emerald-400 to-cyan-400 
-  hover:from-emerald-300 hover:to-cyan-300
-  rounded-2xl shadow-[0_0_20px_rgba(56,189,248,0.3)]
-  font-bold tracking-wide
-  border-2 border-cyan-300/20
+  inline-flex items-center justify-center gap-2 px-8 py-3
+  rounded-full font-medium transition-all duration-300
+  bg-gradient-to-r from-purple-500 to-pink-600 
+  hover:opacity-90 text-white shadow-lg shadow-purple-500/20
+  text-xl
 `;
 
 const secondaryButtonStyles = `
-  transform transition-all duration-200 ease-in-out 
-  hover:scale-105 shadow-lg
-  bg-gradient-to-r from-rose-500 to-pink-500
-  hover:from-rose-400 hover:to-pink-400
-  text-white font-medium
-  rounded-lg px-4 py-2
+  inline-flex items-center justify-center gap-2 px-6 py-2.5
+  rounded-full font-medium transition-all duration-300
+  bg-gradient-to-r from-purple-500 to-pink-600 
+  hover:opacity-90 text-white shadow-lg shadow-purple-500/20
+  text-sm
+`;
+
+const errorContainerStyles = `
+  px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20
+  text-center space-y-2
+`;
+
+const mainErrorTextStyles = `
+  text-red-400 text-lg
+`;
+
+const secondaryErrorTextStyles = `
+  text-red-400 text-sm
 `;
 
 export function AuthButtons({ isHeader = false }: { isHeader?: boolean }) {
@@ -29,8 +38,8 @@ export function AuthButtons({ isHeader = false }: { isHeader?: boolean }) {
   return (
     <ChromiaAuthButton
       className={isHeader ? secondaryButtonStyles : mainButtonStyles}
-      errorContainerClassName="text-center space-y-4"
-      errorTextClassName={isHeader ? "text-sm text-red-400" : "text-lg text-red-400"}
+      errorContainerClassName={errorContainerStyles}
+      errorTextClassName={isHeader ? secondaryErrorTextStyles : mainErrorTextStyles}
       onLogout={() => router.push("/")}
     />
   );

@@ -221,6 +221,6 @@ export const useChromia = () => {
   if (context === undefined) {
     throw new Error("useChromia must be used within a ChromiaProvider");
   }
-
   return context;
 };
+
