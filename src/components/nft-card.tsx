@@ -51,6 +51,10 @@ export function NFTCard({ nft, onRefresh }: NFTCardProps) {
     }
   }
 
+  if (nft.imageUrl === '') {
+    console.log('nft', nft);
+  }
+
   return (
     <div className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-zinc-800/30 to-zinc-800/30 backdrop-blur-xl border border-zinc-800/50 hover:border-zinc-700/50 transition-all duration-300">
       <div className="aspect-square overflow-hidden">
