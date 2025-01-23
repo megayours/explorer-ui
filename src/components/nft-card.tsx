@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useState } from 'react'
-import { ArrowRightLeft, Loader2 } from 'lucide-react'
+import { ArrowRightLeft, ExternalLink, Loader2 } from 'lucide-react'
 import { useGammaChain } from '@/lib/hooks/use-gamma-chain'
 import { useChain } from '@/lib/chain-switcher/chain-context'
 import dapps from '@/config/dapps'
@@ -66,25 +66,71 @@ export function NFTCard({ nft, onRefresh }: NFTCardProps) {
           className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-300"
         />
       </div>
-      
+
       <div className="p-4">
         <div className="space-y-1 mb-3">
           <p className="text-zinc-400 text-sm">{nft.projectName} - {nft.collectionName}</p>
           <h3 className="font-semibold text-lg text-white truncate">{nft.name}</h3>
         </div>
 
-        {nft.properties?.attributes && (
+        {nft.properties && (
           <div className="max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent mb-4">
-            <div className="grid grid-cols-2 gap-1.5 pr-2">
-              {(nft.properties.attributes as Property[]).map((attr, index) => (
-                <div
-                  key={`${attr.trait_type}-${index}`}
-                  className="px-2 py-1.5 rounded-lg bg-zinc-800/50 border border-zinc-700/50"
-                >
-                  <p className="text-zinc-400 text-xs leading-none mb-1">{attr.trait_type}</p>
-                  <p className="text-white text-xs font-medium truncate">{String(attr.value)}</p>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {Object.entries(nft.properties).map(([key, value]) => {
+                const stringValue = String(value);
+                const isUrl = /^https?:\/\/[^\s/$.?#].[^\s]*$/.test(stringValue);
+                const isIpfsPath = stringValue.startsWith('ipfs://');
+                const isIpnsPath = stringValue.startsWith('ipns://');
+
+                let valueElement;
+                if (isUrl) {
+                  valueElement = (
+                    <a
+                      href={stringValue}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:text-purple-300 flex items-center gap-1 truncate"
+                    >
+                      {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                  );
+                } else if (isIpfsPath || isIpnsPath) {
+                  const gateway = 'https://ipfs.io/';
+                  const path = stringValue.replace('ipfs://', 'ipfs/').replace('ipns://', 'ipns/');
+                  const fullUrl = gateway + path;
+
+                  valueElement = (
+                    <a
+                      href={fullUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 break-all"
+                      >
+                      {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
+                      <ExternalLink className="h-3 w-3 shrink-0" />
+                    </a>
+                  );
+                } else {
+                  valueElement = (
+                    <span className="break-all" title={stringValue}>
+                      {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
+                    </span>
+                  );
+                }
+
+                return (
+                  <div
+                    key={key}
+                    className="px-2.5 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex flex-col justify-between min-w-0"
+                  >
+                    <p className="text-zinc-400 text-xs leading-none mb-1.5 truncate" title={key}>{key}</p>
+                    <div className="text-white text-xs font-medium">
+                      {valueElement}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -112,8 +158,8 @@ export function NFTCard({ nft, onRefresh }: NFTCardProps) {
 
           {isSelectingChain && !isTransferring && (
             <>
-              <div 
-                className="fixed inset-0 z-40" 
+              <div
+                className="fixed inset-0 z-40"
                 onClick={() => setIsSelectingChain(false)}
               />
               <div className="absolute bottom-full mb-2 left-0 right-0 rounded-lg overflow-hidden border border-zinc-700/50 bg-zinc-800/95 backdrop-blur-xl shadow-lg z-50">

@@ -13,6 +13,7 @@ import { usePaginatedData } from "@/lib/hooks/use-paginated-data";
 import { PaginationControls } from "@/components/pagination-controls";
 
 function mapTokenToNFT(token: TokenBalance, metadata?: TokenMetadata): NFT {
+  console.log(metadata);
   return {
     id: `${token.collection}-${String(token.token_id)}`,
     projectName: token.project.name,
@@ -63,12 +64,12 @@ function DashboardContent() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black">
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 2xl:max-w-[1800px]">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* NFT Grid */}
           <div className="lg:col-span-2">
             <h2 className="text-xl font-semibold text-white mb-4">Your NFTs</h2>
-            <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3 pb-12">
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 pb-12">
               {nfts.map((nft) => (
                 <NFTCard 
                   key={nft.id} 

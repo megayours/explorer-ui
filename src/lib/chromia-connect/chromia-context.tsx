@@ -8,13 +8,16 @@ import {
   hours,
   hasAuthDescriptorFlags,
   ttlLoginRule,
+  createSingleSigAuthDescriptorRegistration,
+  registerAccount,
+  registrationStrategy,
 } from "@chromia/ft4";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IClient } from "postchain-client";
 import { createClient, FailoverStrategy } from "postchain-client";
 import type React from "react";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useAccount } from "wagmi";
 import { z } from "zod";
 import type { ChromiaConfig } from "./types";
@@ -55,17 +58,18 @@ const hasActiveSessionStorageLogin = async (account: Account) => {
   return acceptableAds.length > 0;
 };
 
-export function ChromiaProvider({ children, config }: PropsWithChildren<ChromiaProviderProps>) {
+export const ChromiaProvider: React.FunctionComponent<
+  PropsWithChildren<ChromiaProviderProps>
+> = ({ children, config }) => {
   const { connector, isConnected } = useAccount();
   const [authStatus, setAuthStatus] = useState<AuthStatus>("disconnected");
   const queryClient = useQueryClient();
 
   const { data: chromiaClient, isLoading: isChromiaClientLoading } = useQuery({
-    queryKey: ["chromiaClient", config.blockchainRid],
+    queryKey: ["chromiaClient"],
     queryFn: async () => {
       const client = await createClient({
-        ...config,
-        failOverConfig: {
+        ...config, failOverConfig: {
           attemptsPerEndpoint: 20,
           strategy: FailoverStrategy.TryNextOnError,
         }
@@ -136,7 +140,18 @@ export function ChromiaProvider({ children, config }: PropsWithChildren<ChromiaP
   const connectToChromiaMutation = useMutation({
     mutationKey: ["chromiaSession", isConnected, connector?.id],
     mutationFn: async () => {
-      if (isConnected && connector && chromiaClient) {
+      // Prevent multiple concurrent connection attempts
+      if (connectToChromiaMutation.isPending) {
+        console.log("Connection already in progress");
+        return null;
+      }
+
+      if (!isConnected || !connector || !chromiaClient) {
+        console.log("Prerequisites not met:", { isConnected, hasConnector: !!connector, hasClient: !!chromiaClient });
+        throw new Error("Not connected or missing Chromia client");
+      }
+
+      try {
         const provider = (await connector.getProvider()) as Eip1193Provider;
         const evmKeyStore = await createWeb3ProviderEvmKeyStore(provider);
         const keyStoreInteractor = createKeyStoreInteractor(
@@ -146,12 +161,12 @@ export function ChromiaProvider({ children, config }: PropsWithChildren<ChromiaP
         const [account] = await keyStoreInteractor.getAccounts();
 
         if (account) {
+          console.log("Found existing account, attempting login");
           const accountId = account.id;
           const evmKeyStoreInteractor = createKeyStoreInteractor(
             chromiaClient,
             evmKeyStore,
           );
-
           const { session, logout } = await evmKeyStoreInteractor.login({
             accountId,
             loginKeyStore: createSessionStorageLoginKeyStore(),
@@ -162,31 +177,41 @@ export function ChromiaProvider({ children, config }: PropsWithChildren<ChromiaP
           });
 
           setAuthStatus("connected");
-
+          console.log("Successfully logged in");
           return { session, logout };
         }
 
+        console.log("No account found, registering new account");
         setAuthStatus("notRegistered");
-
         return { session: null, logout: null };
+      } catch (error) {
+        console.error("Connection error:", error);
+        setAuthStatus("disconnected");
+        throw error;
       }
-
-      throw new Error("Not connected or missing Chromia client");
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        ["chromiaSession", isConnected, connector?.id],
-        data,
-      );
+      if (data) {
+        queryClient.setQueryData(
+          ["chromiaSession", isConnected, connector?.id],
+          data,
+        );
+      }
     },
     onError: (error) => {
-      console.error(error);
-    },
+      console.error("Mutation error:", error);
+      setAuthStatus("disconnected");
+    }
   });
 
-  const connectToChromia = () => {
+  const connectToChromia = useCallback(() => {
+    if (connectToChromiaMutation.isPending) {
+      console.log("Connection already in progress, skipping");
+      return;
+    }
+    console.log("Initiating Chromia connection");
     connectToChromiaMutation.mutate();
-  };
+  }, [connectToChromiaMutation]);
 
   const disconnectFromChromia = () => {
     if (chromiaSessionData?.logout) {
@@ -213,13 +238,13 @@ export function ChromiaProvider({ children, config }: PropsWithChildren<ChromiaP
   return (
     <ChromiaContext.Provider value={value}>{children}</ChromiaContext.Provider>
   );
-}
+};
 
 export const useChromia = () => {
   const context = useContext(ChromiaContext);
   if (context === undefined) {
     throw new Error("useChromia must be used within a ChromiaProvider");
   }
+
   return context;
 };
-

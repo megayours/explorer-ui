@@ -81,7 +81,7 @@ export function TransferHistory() {
           
           return (
             <div
-              key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}`}
+              key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 1000000}`}
               className="p-3 rounded-lg bg-zinc-800/30 border border-zinc-700/50 flex gap-3"
             >
               {/* NFT Image */}
