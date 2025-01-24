@@ -2,35 +2,24 @@
 
 import { useEffect } from "react";
 import type { TokenBalance, TokenMetadata } from "@megayours/sdk";
-import { useGammaChain } from "@/lib/hooks/use-gamma-chain";
 import { Navbar } from '@/components/navbar';
 import { NFTCard } from '@/components/nft-card';
 import { TransferHistory } from '@/components/transfer-history';
 import type { NFT } from '@/types/nft';
 import { useChain } from "@/lib/chain-switcher/chain-context";
-import { withAuth } from "@/lib/auth/protected-route";
+import { useWalletNFTs } from "@/lib/hooks/use-wallet-nfts";
 import { usePaginatedData } from "@/lib/hooks/use-paginated-data";
 import { PaginationControls } from "@/components/pagination-controls";
-
-function mapTokenToNFT(token: TokenBalance, metadata?: TokenMetadata): NFT {
-  console.log(metadata);
-  return {
-    id: `${token.collection}-${String(token.token_id)}`,
-    projectName: token.project.name,
-    collectionName: token.collection,
-    tokenId: token.token_id.toString(),
-    name: metadata?.name ?? `${token.collection} #${token.token_id.toString()}`,
-    imageUrl: (metadata?.properties?.image as string) ?? '/placeholder.svg?height=500&width=500',
-    properties: metadata?.properties ?? {},
-    project: token.project,
-  };
-}
+import { useRouter } from "next/navigation";
+import { useAccount } from "wagmi";
 
 const PAGE_SIZE = 6;
 
-function DashboardContent() {
-  const [actions] = useGammaChain();
+export default function DashboardPage() {
+  const router = useRouter();
+  const { isConnected } = useAccount();
   const { selectedChain } = useChain();
+  const { fetchNFTs, isLoading: isWalletLoading } = useWalletNFTs();
 
   const {
     items: nfts,
@@ -39,27 +28,28 @@ function DashboardContent() {
     page,
     loadInitialPage,
     loadPage,
-  } = usePaginatedData<TokenBalance, NFT>({
+  } = usePaginatedData<TokenBalance>({
     pageSize: PAGE_SIZE,
-    fetchInitialPage: (pageSize) => actions.getTokens(pageSize),
-    transformItem: async (token) => {
-      try {
-        const metadata = await actions.getMetadata(
-          token.project,
-          token.collection,
-          token.token_id
-        );
-        return mapTokenToNFT(token, metadata ?? undefined);
-      } catch (error) {
-        console.error(`Failed to fetch metadata for token ${token.token_id}:`, error);
-        return mapTokenToNFT(token);
+    fetchInitialPage: async (pageSize) => {
+      const paginator = await fetchNFTs(pageSize);
+      if (!paginator) {
+        throw new Error('Failed to fetch NFTs');
       }
+      return paginator;
     },
   });
 
   useEffect(() => {
+    if (!isConnected) {
+      router.replace('/');
+      return;
+    }
     void loadInitialPage();
-  }, [selectedChain.blockchainRid]);
+  }, [isConnected, selectedChain.blockchainRid]);
+
+  if (!isConnected) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black">
@@ -72,9 +62,10 @@ function DashboardContent() {
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 pb-12">
               {nfts.map((nft) => (
                 <NFTCard 
-                  key={nft.id} 
+                  key={`${nft.collection}-${nft.token_id}`}
                   nft={nft} 
                   onRefresh={loadInitialPage}
+                  onTransferSuccess={loadInitialPage}
                 />
               ))}
             </div>
@@ -93,7 +84,7 @@ function DashboardContent() {
 
             <PaginationControls
               page={page}
-              isLoading={isLoading}
+              isLoading={isLoading || isWalletLoading}
               hasMore={hasMore}
               onPageChange={loadPage}
             />
@@ -108,5 +99,3 @@ function DashboardContent() {
     </div>
   );
 }
-
-export default withAuth(DashboardContent);

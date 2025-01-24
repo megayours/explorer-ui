@@ -1,20 +1,30 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
-import { useChromia } from '@/lib/chromia-connect/chromia-context';
+import { useAccount } from 'wagmi';
 import { useEffect } from 'react';
-import { AuthButtons } from '@/components/auth/auth-buttons';
+import { ConnectButton } from '@/components/connect-button';
 import { ChainSwitcher } from '@/components/chain-switcher';
+import { useChain } from '@/lib/chain-switcher/chain-context';
+import dapps from '@/config/dapps';
 
 export default function Home() {
   const router = useRouter();
-  const { chromiaSession } = useChromia();
+  const { isConnected } = useAccount();
+  const { selectedChain, switchChain } = useChain();
 
   useEffect(() => {
-    if (chromiaSession) {
+    // If no chain is selected, select the first one
+    if (!selectedChain && dapps.length > 0) {
+      void switchChain(dapps[0]);
+    }
+  }, [selectedChain, switchChain]);
+
+  useEffect(() => {
+    if (isConnected) {
       router.push('/dashboard');
     }
-  }, [chromiaSession, router]);
+  }, [isConnected, router]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gradient-to-b from-black via-zinc-900 to-black">
@@ -23,12 +33,12 @@ export default function Home() {
           Welcome to Gamma UI
         </h1>
         <p className="text-zinc-400 max-w-md mx-auto">
-          Select a chain and connect your wallet to view and manage your NFT collection
+          Connect your wallet to view and manage your NFT collection
         </p>
         
         <div className="flex flex-col items-center gap-4">
           <ChainSwitcher />
-          <AuthButtons isHeader={false} />
+          <ConnectButton />
         </div>
       </div>
     </main>

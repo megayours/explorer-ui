@@ -1,29 +1,65 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowRightLeft, ExternalLink, Loader2 } from 'lucide-react'
-import { useGammaChain } from '@/lib/hooks/use-gamma-chain'
+import { useNFTTransfer } from '@/lib/hooks/use-nft-transfer'
 import { useChain } from '@/lib/chain-switcher/chain-context'
+import { createMegaYoursQueryClient, TokenBalance, TokenMetadata } from '@megayours/sdk'
+import { createClient } from 'postchain-client'
+import { env } from '@/env'
 import dapps from '@/config/dapps'
-import type { NFT } from '@/types/nft'
-
-type Property = {
-  trait_type: string
-  value: string | number | boolean
-}
+import { useMetadataCache } from '@/lib/hooks/use-metadata-cache'
 
 type NFTCardProps = {
-  nft: NFT
+  nft: TokenBalance
   onRefresh: () => void
+  onTransferSuccess?: () => void
 }
 
-export function NFTCard({ nft, onRefresh }: NFTCardProps) {
-  const [isTransferring, setIsTransferring] = useState(false)
+export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
   const [isSelectingChain, setIsSelectingChain] = useState(false)
   const [targetChain, setTargetChain] = useState<typeof dapps[0] | null>(null)
-  const [actions] = useGammaChain()
+  const [metadata, setMetadata] = useState<TokenMetadata | null>(null)
+  const [isLoadingMetadata, setIsLoadingMetadata] = useState(true)
+  const { transfer, isTransferring } = useNFTTransfer()
   const { selectedChain } = useChain()
+  const { getMetadata: getCachedMetadata, setMetadata: setCachedMetadata } = useMetadataCache()
+
+  useEffect(() => {
+    async function loadMetadata() {
+      try {
+        // Check cache first
+        const cachedMetadata = getCachedMetadata(selectedChain.blockchainRid, nft.collection, nft.token_id)
+        if (cachedMetadata !== undefined) {
+          setMetadata(cachedMetadata)
+          setIsLoadingMetadata(false)
+          return
+        }
+
+        const client = await createClient({ 
+          directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL, 
+          blockchainRid: selectedChain.blockchainRid 
+        })
+        const queryClient = createMegaYoursQueryClient(client)
+        const data = await queryClient.getMetadata(nft.project, nft.collection, nft.token_id)
+        
+        // Update both local state and cache
+        setMetadata(data)
+        setCachedMetadata(selectedChain.blockchainRid, nft.collection, nft.token_id, data)
+      } catch (err) {
+        console.error(`Failed to fetch metadata for token ${nft.token_id}:`, err)
+        
+        // Update both local state and cache with null
+        setMetadata(null)
+        setCachedMetadata(selectedChain.blockchainRid, nft.collection, nft.token_id, null)
+      } finally {
+        setIsLoadingMetadata(false)
+      }
+    }
+
+    void loadMetadata()
+  }, [nft.project, nft.collection, nft.token_id, selectedChain.blockchainRid])
 
   if (!nft) return null
 
@@ -35,32 +71,44 @@ export function NFTCard({ nft, onRefresh }: NFTCardProps) {
     setTargetChain(chain)
     setIsSelectingChain(false)
     try {
-      setIsTransferring(true)
-      await actions.transferToken(
+      await transfer(
         chain.blockchainRid,
         nft.project,
-        nft.collectionName,
-        BigInt(nft.tokenId)
+        nft.collection,
+        nft.token_id,
+        () => {
+          // Refresh both NFTs and transfer history
+          onRefresh()
+          onTransferSuccess?.()
+        }
       )
-      onRefresh()
     } catch (error) {
       console.error("Transfer failed:", error)
     } finally {
-      setIsTransferring(false)
       setTargetChain(null)
     }
   }
 
-  if (nft.imageUrl === '') {
-    console.log('nft', nft);
+  const imageUrl = metadata?.properties?.image?.toString() || '/placeholder.svg?height=500&width=500'
+  const name = metadata?.name || `${nft.collection} #${nft.token_id}`
+
+  if (isLoadingMetadata) {
+    return <div className="flex justify-center items-center h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+    </div>
   }
 
   return (
     <div className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-zinc-800/30 to-zinc-800/30 backdrop-blur-xl border border-zinc-800/50 hover:border-zinc-700/50 transition-all duration-300">
-      <div className="aspect-square overflow-hidden">
+      <div className="aspect-square overflow-hidden relative">
+        {isLoadingMetadata && (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/50">
+            <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+          </div>
+        )}
         <Image
-          src={nft.imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/')}
-          alt={nft.name}
+          src={imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/')}
+          alt={name}
           width={500}
           height={500}
           className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-300"
@@ -69,36 +117,36 @@ export function NFTCard({ nft, onRefresh }: NFTCardProps) {
 
       <div className="p-4">
         <div className="space-y-1 mb-3">
-          <p className="text-zinc-400 text-sm">{nft.projectName} - {nft.collectionName}</p>
-          <h3 className="font-semibold text-lg text-white truncate">{nft.name}</h3>
+          <p className="text-zinc-400 text-sm">{nft.project.name} - {nft.collection}</p>
+          <h3 className="font-semibold text-lg text-white truncate">{name}</h3>
         </div>
 
-        {nft.properties && (
+        {metadata?.properties && (
           <div className="max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent mb-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {Object.entries(nft.properties).map(([key, value]) => {
-                const stringValue = String(value);
-                const isUrl = /^https?:\/\/[^\s/$.?#].[^\s]*$/.test(stringValue);
-                const isIpfsPath = stringValue.startsWith('ipfs://');
-                const isIpnsPath = stringValue.startsWith('ipns://');
+              {Object.entries(metadata.properties).map(([key, value]) => {
+                const stringValue = String(value)
+                const isUrl = /^https?:\/\/[^\s/$.?#].[^\s]*$/.test(stringValue)
+                const isIpfsPath = stringValue.startsWith('ipfs://')
+                const isIpnsPath = stringValue.startsWith('ipns://')
 
-                let valueElement;
+                let valueElement
                 if (isUrl) {
                   valueElement = (
                     <a
                       href={stringValue}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 flex items-center gap-1 truncate"
+                      className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 break-all"
                     >
                       {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
-                      <ExternalLink className="h-3 w-3 shrink-0" />
+                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
                     </a>
-                  );
+                  )
                 } else if (isIpfsPath || isIpnsPath) {
-                  const gateway = 'https://ipfs.io/';
-                  const path = stringValue.replace('ipfs://', 'ipfs/').replace('ipns://', 'ipns/');
-                  const fullUrl = gateway + path;
+                  const gateway = 'https://ipfs.io/'
+                  const path = stringValue.replace('ipfs://', 'ipfs/').replace('ipns://', 'ipns/')
+                  const fullUrl = gateway + path
 
                   valueElement = (
                     <a
@@ -106,17 +154,17 @@ export function NFTCard({ nft, onRefresh }: NFTCardProps) {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 break-all"
-                      >
+                    >
                       {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
-                      <ExternalLink className="h-3 w-3 shrink-0" />
+                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
                     </a>
-                  );
+                  )
                 } else {
                   valueElement = (
                     <span className="break-all" title={stringValue}>
                       {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
                     </span>
-                  );
+                  )
                 }
 
                 return (
@@ -125,11 +173,11 @@ export function NFTCard({ nft, onRefresh }: NFTCardProps) {
                     className="px-2.5 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex flex-col justify-between min-w-0"
                   >
                     <p className="text-zinc-400 text-xs leading-none mb-1.5 truncate" title={key}>{key}</p>
-                    <div className="text-white text-xs font-medium">
+                    <div className="text-white text-xs font-medium min-w-0">
                       {valueElement}
                     </div>
                   </div>
-                );
+                )
               })}
             </div>
           </div>

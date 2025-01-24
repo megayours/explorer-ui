@@ -3,14 +3,13 @@
 import { useRef, useState } from 'react';
 import { Paginator } from '@megayours/sdk';
 
-interface UsePaginatedDataOptions<T, R> {
+interface UsePaginatedDataOptions<T> {
   pageSize: number;
   fetchInitialPage: (pageSize: number) => Promise<Paginator<T>>;
-  transformItem: (item: T) => Promise<R>;
 }
 
-interface UsePaginatedDataResult<R> {
-  items: R[];
+interface UsePaginatedDataResult<T> {
+  items: T[];
   isLoading: boolean;
   hasMore: boolean;
   page: number;
@@ -18,12 +17,11 @@ interface UsePaginatedDataResult<R> {
   loadPage: (direction: 'next' | 'previous') => Promise<void>;
 }
 
-export function usePaginatedData<T, R>({
+export function usePaginatedData<T>({
   pageSize,
   fetchInitialPage,
-  transformItem,
-}: UsePaginatedDataOptions<T, R>): UsePaginatedDataResult<R> {
-  const [items, setItems] = useState<R[]>([]);
+}: UsePaginatedDataOptions<T>): UsePaginatedDataResult<T> {
+  const [items, setItems] = useState<T[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
@@ -39,11 +37,8 @@ export function usePaginatedData<T, R>({
       setIsLoading(true);
       
       const paginator = await fetchInitialPage(pageSize);
-      const transformedItems = await Promise.all(
-        paginator.data.map(transformItem)
-      );
 
-      setItems(transformedItems);
+      setItems(paginator.data);
       setHasMore(paginator.data.length === pageSize);
       paginatorRef.current = paginator;
       paginatorHistoryRef.current = [paginator];
@@ -82,11 +77,7 @@ export function usePaginatedData<T, R>({
         paginatorHistoryRef.current = [paginator];
       }
 
-      const transformedItems = await Promise.all(
-        paginator.data.map(transformItem)
-      );
-
-      setItems(transformedItems);
+      setItems(paginator.data);
       setHasMore(paginator.data.length === pageSize);
       paginatorRef.current = paginator;
       

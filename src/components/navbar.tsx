@@ -1,11 +1,9 @@
 'use client'
 
-import { useChromia } from "@/lib/chromia-connect/chromia-context";
-import { AuthButtons } from "./auth/auth-buttons";
+import { ConnectButton } from "./connect-button";
+import { ChainSwitcher } from "./chain-switcher";
 
 export function Navbar() {
-  const { chromiaSession } = useChromia();
-
   return (
     <nav className="sticky top-0 z-50 w-full border-b border-zinc-800/50 bg-black/50 backdrop-blur-xl">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -17,9 +15,14 @@ export function Navbar() {
             </h1>
           </div>
 
-          {/* Right - Auth Buttons */}
-          <div className="flex items-center justify-end">
-            <AuthButtons isHeader={true} />
+          {/* Center - Chain Switcher */}
+          <div className="flex-1 flex items-center justify-center">
+            <ChainSwitcher isHeader={true} />
+          </div>
+
+          {/* Right - Connect Button */}
+          <div className="flex-1 flex items-center justify-end">
+            <ConnectButton />
           </div>
         </div>
       </div>
