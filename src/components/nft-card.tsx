@@ -125,13 +125,16 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
           <div className="max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent mb-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
               {Object.entries(metadata.properties).map(([key, value]) => {
+                const isObject = typeof value === 'object'
                 const stringValue = String(value)
                 const isUrl = /^https?:\/\/[^\s/$.?#].[^\s]*$/.test(stringValue)
                 const isIpfsPath = stringValue.startsWith('ipfs://')
                 const isIpnsPath = stringValue.startsWith('ipns://')
 
                 let valueElement
-                if (isUrl) {
+                if (isObject) {
+                  valueElement = JSON.stringify(value)
+                } else if (isUrl) {
                   valueElement = (
                     <a
                       href={stringValue}

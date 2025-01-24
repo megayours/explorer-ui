@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronDown, Globe } from 'lucide-react';
 import { useChain } from '@/lib/chain-switcher/chain-context';
 import dapps from '@/config/dapps';
+import { useChromia } from '@/lib/chromia-connect/chromia-context';
 
 interface ChainSwitcherProps {
   isHeader?: boolean;
@@ -12,6 +13,7 @@ interface ChainSwitcherProps {
 export function ChainSwitcher({ isHeader = false }: ChainSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { selectedChain, switchChain } = useChain();
+  const { disconnectFromChromia } = useChromia();
 
   return (
     <div className="relative">
@@ -50,6 +52,7 @@ export function ChainSwitcher({ isHeader = false }: ChainSwitcherProps) {
                   key={chain.blockchainRid}
                   onClick={() => {
                     void switchChain(chain);
+                    disconnectFromChromia();
                     setIsOpen(false);
                   }}
                   className={`
