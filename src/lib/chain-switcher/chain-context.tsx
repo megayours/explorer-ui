@@ -6,7 +6,7 @@ import dapps from '@/config/dapps';
 
 type ChainContextType = {
   selectedChain: typeof dapps[0];
-  switchChain: (chain: typeof dapps[0]) => Promise<void>;
+  switchChain: (chain: typeof dapps[0]) => void;
 };
 
 const ChainContext = createContext<ChainContextType | undefined>(undefined);
@@ -15,13 +15,9 @@ export function ChainProvider({ children }: { children: React.ReactNode }) {
   const [selectedChain, setSelectedChain] = useState(dapps[0]);
   const router = useRouter();
 
-  const switchChain = useCallback(async (chain: typeof dapps[0]) => {
-    try {
-      setSelectedChain(chain);
-      router.replace('/');
-    } catch (error) {
-      console.error('Error switching chain:', error);
-    }
+  const switchChain = useCallback((chain: typeof dapps[0]) => {
+    setSelectedChain(chain);
+    router.replace('/');
   }, [router]);
 
   return (

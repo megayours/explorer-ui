@@ -18,6 +18,7 @@ import { env } from "@/env";
 import { ChromiaConfig } from "@/lib/chromia-connect/types";
 import { ChainProvider, useChain } from "@/lib/chain-switcher/chain-context";
 import dapps from "@/config/dapps";
+import { ChainChangeHandler } from '@/components/chain-change-handler';
 
 const makeQueryClient = (): QueryClient =>
   new QueryClient({
@@ -111,6 +112,7 @@ export const ClientProviders: React.FunctionComponent<
         >
           <ChainProvider>
             <ChromiaProviderWithChain>
+              <ChainChangeHandler />
               {children}
             </ChromiaProviderWithChain>
           </ChainProvider>

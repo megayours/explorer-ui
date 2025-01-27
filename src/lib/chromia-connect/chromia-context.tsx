@@ -11,6 +11,7 @@ import {
   createSingleSigAuthDescriptorRegistration,
   registerAccount,
   registrationStrategy,
+  createInMemoryLoginKeyStore,
 } from "@chromia/ft4";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IClient } from "postchain-client";
@@ -66,8 +67,9 @@ export const ChromiaProvider: React.FunctionComponent<
   const queryClient = useQueryClient();
 
   const { data: chromiaClient, isLoading: isChromiaClientLoading } = useQuery({
-    queryKey: ["chromiaClient"],
+    queryKey: ["chromiaClient", config.blockchainRid],
     queryFn: async () => {
+      console.log(`Creating Chromia client for chain: ${config.blockchainRid}`);
       const client = await createClient({
         ...config, failOverConfig: {
           attemptsPerEndpoint: 20,
@@ -132,63 +134,47 @@ export const ChromiaProvider: React.FunctionComponent<
 
   useEffect(() => {
     if (!isConnected) {
-      queryClient.removeQueries({ queryKey: ["chromiaClient"] });
-      queryClient.removeQueries({ queryKey: ["chromiaSession"] });
+      queryClient.removeQueries({ queryKey: ["chromiaClient", config.blockchainRid] });
+      queryClient.removeQueries({ queryKey: ["chromiaSession", isConnected, connector?.id] });
     }
-  }, [isConnected, queryClient]);
+  }, [isConnected, queryClient, config.blockchainRid, connector?.id]);
 
   const connectToChromiaMutation = useMutation({
-    mutationKey: ["chromiaSession", isConnected, connector?.id],
+    mutationKey: ["connectToChromia", config.blockchainRid],
     mutationFn: async () => {
-      // Prevent multiple concurrent connection attempts
-      if (connectToChromiaMutation.isPending) {
-        console.log("Connection already in progress");
-        return null;
-      }
-
-      if (!isConnected || !connector || !chromiaClient) {
-        console.log("Prerequisites not met:", { isConnected, hasConnector: !!connector, hasClient: !!chromiaClient });
+      if (!isConnected || !connector?.getProvider || !chromiaClient) {
         throw new Error("Not connected or missing Chromia client");
       }
 
-      try {
-        const provider = (await connector.getProvider()) as Eip1193Provider;
-        const evmKeyStore = await createWeb3ProviderEvmKeyStore(provider);
-        const keyStoreInteractor = createKeyStoreInteractor(
-          chromiaClient,
-          evmKeyStore,
-        );
-        const [account] = await keyStoreInteractor.getAccounts();
+      console.log(`Connecting to Chromia on ${config.blockchainRid}`);
+      console.log(`Chromia client: ${chromiaClient.config.blockchainRid}`);
 
-        if (account) {
-          console.log("Found existing account, attempting login");
-          const accountId = account.id;
-          const evmKeyStoreInteractor = createKeyStoreInteractor(
-            chromiaClient,
-            evmKeyStore,
-          );
-          const { session, logout } = await evmKeyStoreInteractor.login({
-            accountId,
-            loginKeyStore: createSessionStorageLoginKeyStore(),
-            config: {
-              rules: ttlLoginRule(hours(12)),
-              flags: AuthFlags,
-            },
-          });
+      const provider = (await connector.getProvider()) as Eip1193Provider;
+      const evmKeyStore = await createWeb3ProviderEvmKeyStore(provider);
+      const keyStoreInteractor = createKeyStoreInteractor(
+        chromiaClient,
+        evmKeyStore,
+      );
+      const [account] = await keyStoreInteractor.getAccounts();
 
-          setAuthStatus("connected");
-          console.log("Successfully logged in");
-          return { session, logout };
-        }
-
-        console.log("No account found, registering new account");
+      if (!account) {
         setAuthStatus("notRegistered");
-        return { session: null, logout: null };
-      } catch (error) {
-        console.error("Connection error:", error);
-        setAuthStatus("disconnected");
-        throw error;
+        return null;
       }
+
+      const evmKeyStoreInteractor = createKeyStoreInteractor(
+        chromiaClient,
+        evmKeyStore,
+      );
+      const { session, logout } = await evmKeyStoreInteractor.login({
+        accountId: account.id,
+        config: {
+          rules: ttlLoginRule(hours(12)),
+          flags: AuthFlags,
+        },
+      });
+
+      return { session, logout };
     },
     onSuccess: (data) => {
       if (data) {
@@ -196,12 +182,13 @@ export const ChromiaProvider: React.FunctionComponent<
           ["chromiaSession", isConnected, connector?.id],
           data,
         );
+        setAuthStatus("connected");
       }
     },
     onError: (error) => {
-      console.error("Mutation error:", error);
+      console.error("Failed to connect to Chromia:", error);
       setAuthStatus("disconnected");
-    }
+    },
   });
 
   const connectToChromia = useCallback(() => {
