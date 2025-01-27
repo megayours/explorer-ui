@@ -91,6 +91,7 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
 
   const imageUrl = metadata?.properties?.image?.toString() || '/placeholder.svg?height=500&width=500'
   const name = metadata?.name || `${nft.collection} #${nft.token_id}`
+  const modules = metadata?.yours?.modules || []
 
   if (isLoadingMetadata) {
     return <div className="flex justify-center items-center h-screen">
@@ -118,7 +119,24 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
       <div className="p-4">
         <div className="space-y-1 mb-3">
           <p className="text-zinc-400 text-sm">{nft.project.name} - {nft.collection}</p>
-          <h3 className="font-semibold text-lg text-white truncate">{name}</h3>
+          <h3 className="font-semibold text-lg text-white truncate mb-6">{name}</h3>
+          
+          {/* Modules Section */}
+          {modules.length > 0 && (
+            <div className="mt-4">
+              <p className="text-zinc-400 text-xs mb-1.5">Modules</p>
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {modules.map((module, index) => (
+                  <span
+                    key={index}
+                    className="px-2 py-1 text-xs font-medium rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                  >
+                    {module}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {metadata?.properties && (
