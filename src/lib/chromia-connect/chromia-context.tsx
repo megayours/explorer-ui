@@ -69,7 +69,6 @@ export const ChromiaProvider: React.FunctionComponent<
   const { data: chromiaClient, isLoading: isChromiaClientLoading } = useQuery({
     queryKey: ["chromiaClient", config.blockchainRid],
     queryFn: async () => {
-      console.log(`Creating Chromia client for chain: ${config.blockchainRid}`);
       const client = await createClient({
         ...config, failOverConfig: {
           attemptsPerEndpoint: 20,
@@ -146,9 +145,6 @@ export const ChromiaProvider: React.FunctionComponent<
         throw new Error("Not connected or missing Chromia client");
       }
 
-      console.log(`Connecting to Chromia on ${config.blockchainRid}`);
-      console.log(`Chromia client: ${chromiaClient.config.blockchainRid}`);
-
       const provider = (await connector.getProvider()) as Eip1193Provider;
       const evmKeyStore = await createWeb3ProviderEvmKeyStore(provider);
       const keyStoreInteractor = createKeyStoreInteractor(
@@ -174,6 +170,8 @@ export const ChromiaProvider: React.FunctionComponent<
         },
       });
 
+      console.log(`Session after auth - auth descriptor: ${session.account.authenticator.keyHandlers[0].authDescriptor.id.toString('hex')}`);
+
       return { session, logout };
     },
     onSuccess: (data) => {
@@ -193,14 +191,14 @@ export const ChromiaProvider: React.FunctionComponent<
 
   const connectToChromia = useCallback(() => {
     if (connectToChromiaMutation.isPending) {
-      console.log("Connection already in progress, skipping");
       return;
     }
-    console.log("Initiating Chromia connection");
+
     connectToChromiaMutation.mutate();
   }, [connectToChromiaMutation]);
 
   const disconnectFromChromia = () => {
+    console.log(`Disconnecting from Chromia`);
     if (chromiaSessionData?.logout) {
       void chromiaSessionData.logout();
     }

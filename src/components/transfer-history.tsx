@@ -8,7 +8,7 @@ import { env } from '@/env';
 import { useChain } from '@/lib/chain-switcher/chain-context';
 import { useAccount } from 'wagmi';
 import { usePaginatedData } from '@/lib/hooks/use-paginated-data';
-import { getAccountId } from '@/lib/hooks/use-wallet-nfts';
+import { getAccountId } from '@/lib/utils/chain';
 import { PaginationControls } from '@/components/pagination-controls';
 import { useMetadataCache } from '@/lib/hooks/use-metadata-cache';
 
@@ -226,7 +226,11 @@ export function TransferHistory() {
               </div>
 
               {/* Chain Info (if available) */}
-              {!isExternal && transfer.blockchain_rid && (
+              {isExternal ? (
+                <div className="flex-shrink-0 px-2 py-1 rounded bg-zinc-800/50 border border-zinc-700/50">
+                  <p className="text-xs text-zinc-400 font-medium italic">Owner Changed</p>
+                </div>
+              ) : transfer.blockchain_rid && (
                 <div className="flex-shrink-0 px-2 py-1 rounded bg-zinc-800/50 border border-zinc-700/50">
                   <p className="text-xs text-zinc-400 font-medium truncate">{truncateBlockchainRid(transfer.blockchain_rid)}</p>
                 </div>

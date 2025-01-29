@@ -10,11 +10,67 @@ import { createClient } from 'postchain-client'
 import { env } from '@/env'
 import dapps from '@/config/dapps'
 import { useMetadataCache } from '@/lib/hooks/use-metadata-cache'
+import { JsonViewer } from './json-viewer'
 
 type NFTCardProps = {
   nft: TokenBalance
   onRefresh: () => void
   onTransferSuccess?: () => void
+}
+
+function PropertyValue({ value }: { value: unknown }) {
+  // If the value is an object or array, render it as JSON
+  if (typeof value === 'object' && value !== null) {
+    return <JsonViewer data={value} />;
+  }
+
+  const stringValue = String(value);
+  
+  // Handle IPFS/IPNS links
+  if (stringValue.startsWith('ipfs://') || stringValue.startsWith('ipns://')) {
+    const gateway = 'https://ipfs.io/';
+    const path = stringValue.replace('ipfs://', 'ipfs/').replace('ipns://', 'ipns/');
+    const fullUrl = gateway + path;
+
+    return (
+      <a 
+        href={fullUrl} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 text-xs min-w-0 w-full"
+        title={stringValue}
+      >
+        <span className="truncate">{stringValue}</span>
+        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+      </a>
+    );
+  }
+
+  // Handle regular URLs
+  if (stringValue.startsWith('http://') || stringValue.startsWith('https://')) {
+    return (
+      <a 
+        href={stringValue} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 text-xs min-w-0 w-full"
+        title={stringValue}
+      >
+        <span className="truncate">{stringValue}</span>
+        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+      </a>
+    );
+  }
+
+  // Handle regular text with truncation
+  return (
+    <span 
+      className="text-zinc-300 text-xs truncate block min-w-0 w-full" 
+      title={stringValue}
+    >
+      {stringValue}
+    </span>
+  );
 }
 
 export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
@@ -78,6 +134,7 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
         nft.token_id,
         () => {
           // Refresh both NFTs and transfer history
+          console.log(`NFTCard: Transfer success, refreshing...`);
           onRefresh()
           onTransferSuccess?.()
         }
@@ -139,67 +196,20 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
           )}
         </div>
 
-        {metadata?.properties && (
+        {metadata && (
           <div className="max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent mb-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-              {Object.entries(metadata.properties).map(([key, value]) => {
-                const isObject = typeof value === 'object'
-                const stringValue = String(value)
-                const isUrl = /^https?:\/\/[^\s/$.?#].[^\s]*$/.test(stringValue)
-                const isIpfsPath = stringValue.startsWith('ipfs://')
-                const isIpnsPath = stringValue.startsWith('ipns://')
-
-                let valueElement
-                if (isObject) {
-                  valueElement = JSON.stringify(value)
-                } else if (isUrl) {
-                  valueElement = (
-                    <a
-                      href={stringValue}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 break-all"
-                    >
-                      {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
-                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                    </a>
-                  )
-                } else if (isIpfsPath || isIpnsPath) {
-                  const gateway = 'https://ipfs.io/'
-                  const path = stringValue.replace('ipfs://', 'ipfs/').replace('ipns://', 'ipns/')
-                  const fullUrl = gateway + path
-
-                  valueElement = (
-                    <a
-                      href={fullUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 break-all"
-                    >
-                      {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
-                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                    </a>
-                  )
-                } else {
-                  valueElement = (
-                    <span className="break-all" title={stringValue}>
-                      {stringValue.length > 16 ? `${stringValue.slice(0, 16)}...` : stringValue}
-                    </span>
-                  )
-                }
-
-                return (
-                  <div
-                    key={key}
-                    className="px-2.5 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex flex-col justify-between min-w-0"
-                  >
-                    <p className="text-zinc-400 text-xs leading-none mb-1.5 truncate" title={key}>{key}</p>
-                    <div className="text-white text-xs font-medium min-w-0">
-                      {valueElement}
-                    </div>
+              {Object.entries(metadata.properties || {}).map(([key, value]) => (
+                <div
+                  key={key}
+                  className="px-2.5 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex flex-col min-w-0"
+                >
+                  <p className="text-zinc-400 text-xs leading-none mb-1.5 truncate" title={key}>{key}</p>
+                  <div className="text-white text-xs font-medium min-w-0 flex-1">
+                    <PropertyValue value={value} />
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           </div>
         )}

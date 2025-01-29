@@ -64,7 +64,6 @@ export function usePaginatedData<T>({
       
       if (direction === 'next' && paginatorRef.current) {
         paginator = await paginatorRef.current.fetchNext();
-        console.log(`Data received on page: `, paginator.data);
         paginatorHistoryRef.current.push(paginator);
       } else if (direction === 'previous') {
         // Remove current paginator from history

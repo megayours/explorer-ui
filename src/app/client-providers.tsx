@@ -67,9 +67,9 @@ const getQueryClient = (): QueryClient => {
   return browserQueryClient;
 };
 
-type ClientProviderProps = {
-  initialState?: WagmiState | undefined;
-};
+interface ClientProvidersProps extends React.PropsWithChildren<{}> {
+  initialBlockchainRid?: string;
+}
 
 function ChromiaProviderWithChain({ children }: { children: React.ReactNode }) {
   const { selectedChain } = useChain();
@@ -94,23 +94,18 @@ function ChromiaProviderWithChain({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const ClientProviders: React.FunctionComponent<
-  React.PropsWithChildren<ClientProviderProps>
-> = ({ children, initialState }) => {
+export const ClientProviders: React.FunctionComponent<ClientProvidersProps> = ({ 
+  children, 
+  initialBlockchainRid = dapps[0].blockchainRid
+}) => {
   const [wagmiConfig] = useState(() => getWagmiConfig());
   const queryClient = getQueryClient();
 
   return (
-    <WagmiProvider config={wagmiConfig} initialState={initialState}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <ConnectKitProvider 
-          options={{
-            enforceSupportedChains: true,
-            initialChainId: wagmiConfig.chains[0].id,
-            overlayBlur: 0,
-          }}
-        >
-          <ChainProvider>
+        <ConnectKitProvider>
+          <ChainProvider initialBlockchainRid={initialBlockchainRid}>
             <ChromiaProviderWithChain>
               <ChainChangeHandler />
               {children}
