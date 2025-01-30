@@ -6,6 +6,7 @@ import { NFTCard } from './nft-card';
 import { PaginationControls } from './pagination-controls';
 import { useChain } from '@/lib/chain-switcher/chain-context';
 import { EmptyState } from './empty-state';
+import { colors } from '@/lib/theme';
 
 export function NFTGrid({ accountId }: { accountId: string | null }) {
   const { nfts, isLoading, page, hasMore, loadPage, loadInitialPage } = useWalletNFTs(accountId);
@@ -34,7 +35,7 @@ export function NFTGrid({ accountId }: { accountId: string | null }) {
   if (isLoading && !loadedRef.current.loaded) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
   }
@@ -49,7 +50,7 @@ export function NFTGrid({ accountId }: { accountId: string | null }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-white mb-4">Tokens</h2>
+      <h2 className="text-xl font-semibold text-primary mb-4">Tokens</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {nfts.map((nft) => (
           <NFTCard

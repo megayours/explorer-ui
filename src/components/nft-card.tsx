@@ -37,7 +37,7 @@ function PropertyValue({ value }: { value: unknown }) {
         href={fullUrl} 
         target="_blank" 
         rel="noopener noreferrer"
-        className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 text-xs min-w-0 w-full"
+        className="text-accent-blue hover:text-accent-blue/80 inline-flex items-center gap-1 text-xs min-w-0 w-full"
         title={stringValue}
       >
         <span className="truncate">{stringValue}</span>
@@ -53,7 +53,7 @@ function PropertyValue({ value }: { value: unknown }) {
         href={stringValue} 
         target="_blank" 
         rel="noopener noreferrer"
-        className="text-purple-400 hover:text-purple-300 inline-flex items-center gap-1 text-xs min-w-0 w-full"
+        className="text-accent-blue hover:text-accent-blue/80 inline-flex items-center gap-1 text-xs min-w-0 w-full"
         title={stringValue}
       >
         <span className="truncate">{stringValue}</span>
@@ -65,7 +65,7 @@ function PropertyValue({ value }: { value: unknown }) {
   // Handle regular text with truncation
   return (
     <span 
-      className="text-zinc-300 text-xs truncate block min-w-0 w-full" 
+      className="text-text-primary text-xs truncate block min-w-0 w-full" 
       title={stringValue}
     >
       {stringValue}
@@ -151,42 +151,41 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
   const modules = metadata?.yours?.modules || []
 
   if (isLoadingMetadata) {
-    return <div className="flex justify-center items-center h-screen">
-      <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+    return <div className="flex justify-center items-center h-[200px]">
+      <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
     </div>
   }
 
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-gradient-to-b from-zinc-800/30 to-zinc-800/30 backdrop-blur-xl border border-zinc-800/50 hover:border-zinc-700/50 transition-all duration-300">
-      <div className="aspect-square overflow-hidden relative">
+    <div className="group relative overflow-hidden rounded-xl bg-card border border-border hover:border-border-hover transition-all duration-300 shadow-sm">
+      <div className="aspect-[4/3] overflow-hidden relative">
         {isLoadingMetadata && (
-          <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/50">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+            <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
           </div>
         )}
         <Image
           src={imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/')}
           alt={name}
-          width={500}
-          height={500}
+          width={400}
+          height={300}
           className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-300"
         />
       </div>
 
       <div className="p-4">
         <div className="space-y-1 mb-3">
-          <p className="text-zinc-400 text-sm">{nft.project.name} - {nft.collection}</p>
-          <h3 className="font-semibold text-lg text-white truncate mb-6">{name}</h3>
+          <p className="text-text-secondary text-sm">{nft.project.name} - {nft.collection}</p>
+          <h3 className="font-semibold text-text-primary truncate">{name}</h3>
           
           {/* Modules Section */}
           {modules.length > 0 && (
-            <div className="mt-4">
-              <p className="text-zinc-400 text-xs mb-1.5">Modules</p>
-              <div className="flex flex-wrap gap-1.5 mb-4">
+            <div className="mt-2">
+              <div className="flex flex-wrap gap-1.5">
                 {modules.map((module, index) => (
                   <span
                     key={index}
-                    className="px-2 py-1 text-xs font-medium rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                    className="px-2 py-0.5 text-xs font-medium rounded-md bg-accent-blue/10 text-accent-blue border border-accent-blue/20"
                   >
                     {module}
                   </span>
@@ -197,15 +196,15 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
         </div>
 
         {metadata && (
-          <div className="max-h-[120px] overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent mb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          <div className="max-h-[100px] overflow-y-auto scrollbar-thin mb-4">
+            <div className="grid grid-cols-2 gap-1.5">
               {Object.entries(metadata.properties || {}).map(([key, value]) => (
                 <div
                   key={key}
-                  className="px-2.5 py-2 rounded-lg bg-zinc-800/50 border border-zinc-700/50 flex flex-col min-w-0"
+                  className="px-2 py-1.5 rounded-lg bg-muted border border-border flex flex-col min-w-0"
                 >
-                  <p className="text-zinc-400 text-xs leading-none mb-1.5 truncate" title={key}>{key}</p>
-                  <div className="text-white text-xs font-medium min-w-0 flex-1">
+                  <p className="text-text-secondary text-xs leading-none mb-1 truncate" title={key}>{key}</p>
+                  <div className="text-text-primary text-xs font-medium min-w-0 flex-1">
                     <PropertyValue value={value} />
                   </div>
                 </div>
@@ -218,8 +217,8 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
           <button
             onClick={() => setIsSelectingChain(true)}
             disabled={isTransferring}
-            className="w-full px-4 py-2 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/50 
-                     hover:border-zinc-600/50 transition-all duration-300 text-sm font-medium text-white
+            className="w-full px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90
+                     border border-border transition-all duration-300 text-sm font-medium
                      disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isTransferring ? (
@@ -241,17 +240,17 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess }: NFTCardProps) {
                 className="fixed inset-0 z-40"
                 onClick={() => setIsSelectingChain(false)}
               />
-              <div className="absolute bottom-full mb-2 left-0 right-0 rounded-lg overflow-hidden border border-zinc-700/50 bg-zinc-800/95 backdrop-blur-xl shadow-lg z-50">
+              <div className="absolute bottom-full mb-2 left-0 right-0 rounded-lg overflow-hidden border border-border bg-card shadow-md z-50">
                 <div className="py-1">
                   {availableChains.map((chain) => (
                     <button
                       key={chain.blockchainRid}
                       onClick={() => handleTransfer(chain)}
                       disabled={isTransferring}
-                      className="w-full px-4 py-2 text-left text-sm transition-colors
-                        text-zinc-300 hover:bg-zinc-700/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full px-4 py-2 text-left hover:bg-muted transition-colors
+                               text-text-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Transfer to {chain.name}
+                      {chain.name}
                     </button>
                   ))}
                 </div>

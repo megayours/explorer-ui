@@ -2,19 +2,20 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "./client-providers";
+import { use } from "react";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
-  adjustFontFallback: false
+  adjustFontFallback: false,
+  variable: "--font-geist-sans",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
-  adjustFontFallback: false
+  adjustFontFallback: false,
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
@@ -24,18 +25,28 @@ export const metadata: Metadata = {
 
 interface RootLayoutProps {
   children: React.ReactNode;
-  params: {
+  params: Promise<{
     chain: string;
-  };
+  }>;
 }
 
 export default function RootLayout({ children, params }: RootLayoutProps) {
-  const className = `${geistSans.variable} ${geistMono.variable} antialiased`;
+  const { chain } = use(params);
   
   return (
-    <html lang="en" className={className}>
-      <body>
-        <ClientProviders initialBlockchainRid={params.chain}>
+    <html 
+      lang="en" 
+      suppressHydrationWarning
+      className={[
+        geistSans.variable,
+        geistMono.variable,
+        "antialiased",
+        "light"
+      ].join(" ")}
+    >
+      <head />
+      <body suppressHydrationWarning className="min-h-screen bg-background text-foreground">
+        <ClientProviders initialBlockchainRid={chain}>
           {children}
         </ClientProviders>
       </body>

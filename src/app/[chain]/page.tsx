@@ -37,7 +37,7 @@ export default function Page({ params }: PageProps) {
   }, [getAccountId, address, chain]);
   
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-background text-foreground">
       <ChainInitializer chainName={chain} />
       <Navbar />
       <MainContent accountId={accountId} />

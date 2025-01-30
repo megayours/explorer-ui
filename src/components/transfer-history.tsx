@@ -10,6 +10,7 @@ import { usePaginatedData } from '@/lib/hooks/use-paginated-data';
 import { PaginationControls } from '@/components/pagination-controls';
 import { useMetadataCache } from '@/lib/hooks/use-metadata-cache';
 import { EmptyState } from './empty-state';
+import { colors, shadows } from '@/lib/theme';
 
 const PAGE_SIZE = 10;
 
@@ -175,7 +176,7 @@ export function TransferHistory({ accountId }: { accountId: string | null }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-white mb-4">Transfer History</h2>
+      <h2 className="text-xl font-semibold text-primary mb-4">Transfer History</h2>
       <div className="space-y-2">
         {transfers.map((transfer) => {
           const key = `${transfer.token.collection}-${transfer.token.id}`;
@@ -190,26 +191,30 @@ export function TransferHistory({ accountId }: { accountId: string | null }) {
           return (
             <div
               key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random()*1000}`}
-              className="p-3 rounded-lg bg-zinc-800/30 border border-zinc-700/50 flex items-center gap-3"
+              className="p-3 rounded-lg bg-background-DEFAULT border border-border hover:border-border-hover transition-colors shadow-sm flex items-center gap-3"
             >
               {/* Transfer Type Icon */}
-              <div className={`flex-shrink-0 p-2 rounded-lg ${isReceived ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+              <div className={`flex-shrink-0 p-2 rounded-lg ${
+                isReceived 
+                  ? 'bg-status-success-bg text-status-success-text' 
+                  : 'bg-status-error-bg text-status-error-text'
+              }`}>
                 {isExternal ? (
                   isReceived ? (
-                    <ArrowDownLeft className="h-4 w-4 text-green-500" />
+                    <ArrowDownLeft className="h-4 w-4" />
                   ) : (
-                    <ArrowUpRight className="h-4 w-4 text-red-500" />
+                    <ArrowUpRight className="h-4 w-4" />
                   )
                 ) : (
-                  <ArrowLeftRight className={`h-4 w-4 ${isReceived ? 'text-green-500' : 'text-red-500'}`} />
+                  <ArrowLeftRight className="h-4 w-4" />
                 )}
               </div>
 
               {/* NFT Image */}
-              <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800">
+              <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-background-light">
                 {isLoadingCurrentMetadata ? (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                    <Loader2 className="h-4 w-4 animate-spin text-accent-blue" />
                   </div>
                 ) : (
                   <img
@@ -222,18 +227,18 @@ export function TransferHistory({ accountId }: { accountId: string | null }) {
 
               {/* NFT Info */}
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-zinc-400 truncate">{transfer.token.project.name} - {transfer.token.collection}</p>
-                <h3 className="font-medium text-sm text-white truncate">{name}</h3>
+                <p className="text-xs text-text-secondary truncate">{transfer.token.project.name} - {transfer.token.collection}</p>
+                <h3 className="font-medium text-sm text-text-primary truncate">{name}</h3>
               </div>
 
               {/* Chain Info (if available) */}
               {isExternal ? (
-                <div className="flex-shrink-0 px-2 py-1 rounded bg-zinc-800/50 border border-zinc-700/50">
-                  <p className="text-xs text-zinc-400 font-medium italic">Owner Changed</p>
+                <div className="flex-shrink-0 px-2 py-1 rounded bg-background-light border border-border">
+                  <p className="text-xs text-text-secondary font-medium italic">Owner Changed</p>
                 </div>
               ) : transfer.blockchain_rid && (
-                <div className="flex-shrink-0 px-2 py-1 rounded bg-zinc-800/50 border border-zinc-700/50">
-                  <p className="text-xs text-zinc-400 font-medium truncate">{truncateBlockchainRid(transfer.blockchain_rid)}</p>
+                <div className="flex-shrink-0 px-2 py-1 rounded bg-background-light border border-border">
+                  <p className="text-xs text-text-secondary font-medium truncate">{truncateBlockchainRid(transfer.blockchain_rid)}</p>
                 </div>
               )}
             </div>
