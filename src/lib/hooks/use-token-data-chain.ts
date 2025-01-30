@@ -1,14 +1,12 @@
 import { TokenBalance, Paginator, createMegaYoursClient, Project, TokenMetadata, TransferHistory, Token, createMegaYoursQueryClient } from "@megayours/sdk";
 import { useChromia } from "../chromia-connect/chromia-context";
-import { IClient, createClient, FailoverStrategy } from "postchain-client";
+import { createClient, FailoverStrategy } from "postchain-client";
 import { useChain } from "@/lib/chain-switcher/chain-context";
-import { useAccount } from "wagmi";
 import { useMemo } from "react";
 import { env } from "@/env";
 
 export type GammaChainActions = {
-  getTokens: (pageSize: number) => Promise<Paginator<TokenBalance>>;
-  transferToken: (toBlockchainRid: string, project: Project, collection: string, tokenId: bigint) => Promise<void>;
+  getTokens: (pageSize: number, accountId: string | null) => Promise<Paginator<TokenBalance>>;
   getMetadata: (project: Project, collection: string, tokenId: bigint) => Promise<TokenMetadata | null>;
   getTransferHistory: (pageSize: number) => Promise<Paginator<TransferHistory>>;
 };
@@ -25,31 +23,24 @@ export type ChainTokenBalance = TokenBalance & {
 export function useGammaChain(): [GammaChainActions, GammaChainState] {
   const { chromiaSession } = useChromia();
   const { chainClient, selectedChain } = useChain();
-  const { address } = useAccount();
 
   const state: GammaChainState = {
     isInitialized: !!chromiaSession,
   };
 
-  const getAccountId = async (client: IClient, evmAddress: string) => {
-    const accounts = await client.query<{ data: { id: Buffer }[] }>('ft4.get_accounts_by_signer', {
-      id: Buffer.from(evmAddress.slice(2), 'hex'),  // Remove '0x' prefix
-      page_size: 1,
-      page_cursor: null
-    });
-
-    if (accounts.data.length === 0) return null;
-
-    return accounts.data[0].id;
-  }
+  
 
   const actions = useMemo<GammaChainActions>(() => ({
-    getTokens: async (pageSize: number) => {
-      if (!address) {
-        throw new Error("Wallet not connected");
+    getTokens: async (pageSize: number, accountId: string | null) => {
+      // Create a new client for this specific request to ensure we're using the correct chain
+
+      if (!accountId) {
+        return {
+          data: [],
+          fetchNext: () => Promise.resolve(null as unknown as Paginator<TokenBalance>)
+        } as Paginator<TokenBalance>;
       }
 
-      // Create a new client for this specific request to ensure we're using the correct chain
       const client = await createClient({
         directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL,
         blockchainRid: selectedChain.blockchainRid,
@@ -67,16 +58,8 @@ export function useGammaChain(): [GammaChainActions, GammaChainState] {
 
       // Otherwise, use the query client
       const queryClient = createMegaYoursQueryClient(client);
-      const accountId = await getAccountId(client, address);
-      
-      if (!accountId) {
-        return {
-          data: [],
-          fetchNext: () => Promise.resolve(null as unknown as Paginator<TokenBalance>)
-        } as Paginator<TokenBalance>;
-      }
 
-      return queryClient.getTokenBalances(accountId, pageSize);
+      return queryClient.getTokenBalances(Buffer.from(accountId, 'hex'), pageSize);
     },
     getMetadata: async (project: Project, collection: string, tokenId: bigint) => {
       // Create a new client for this specific request
@@ -92,19 +75,6 @@ export function useGammaChain(): [GammaChainActions, GammaChainState] {
       const queryClient = createMegaYoursQueryClient(client);
       return queryClient.getMetadata(project, collection, tokenId);
     },
-    transferToken: async (toBlockchainRid: string, project: Project, collection: string, tokenId: bigint) => {
-      if (!chromiaSession) {
-        throw new Error("Chromia session not initialized");
-      }
-
-      if (!chainClient) {
-        throw new Error("Chain client not initialized");
-      }
-
-      console.log(`useGammaChain: Session before transfer - auth descriptor: ${chromiaSession.account.authenticator.keyHandlers[0].authDescriptor.id.toString('hex')}`);
-      const client = createMegaYoursClient(chromiaSession);
-      return client.transferCrosschain(chainClient, client.account.id, project, collection, tokenId, BigInt(1))
-    },
     getTransferHistory: async (pageSize: number) => {
       if (!chromiaSession) {
         throw new Error("Chromia session not initialized");
@@ -112,7 +82,7 @@ export function useGammaChain(): [GammaChainActions, GammaChainState] {
       const client = createMegaYoursClient(chromiaSession);
       return client.getTransferHistoryByAccount(chromiaSession.account.id, undefined, pageSize);
     }
-  }), [address, selectedChain.blockchainRid, chromiaSession]); // Remove chainClient from deps since we're creating new clients
+  }), [selectedChain.blockchainRid, chromiaSession]); // Remove chainClient from deps since we're creating new clients
 
   return [actions, state];
 }

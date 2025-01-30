@@ -170,8 +170,6 @@ export const ChromiaProvider: React.FunctionComponent<
         },
       });
 
-      console.log(`Session after auth - auth descriptor: ${session.account.authenticator.keyHandlers[0].authDescriptor.id.toString('hex')}`);
-
       return { session, logout };
     },
     onSuccess: (data) => {

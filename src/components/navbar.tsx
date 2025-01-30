@@ -11,7 +11,7 @@ export function Navbar() {
           {/* Logo */}
           <div className="flex-1 flex items-center justify-start">
             <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
-              Gamma UI
+              MegaYours Explorer
             </h1>
           </div>
 

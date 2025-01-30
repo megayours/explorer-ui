@@ -29,7 +29,6 @@ export function useNFTTransfer() {
       
       // Verify session is for the correct chain
       if (chromiaSession.blockchainRid.toString('hex').toLowerCase() !== pendingTransfer.sourceBlockchainRid.toLowerCase()) {
-        console.log('Session is for wrong chain, disconnecting and reconnecting...');
         disconnectFromChromia();
         void connectToChromia();
         return;
@@ -39,8 +38,6 @@ export function useNFTTransfer() {
         try {
           setIsTransferring(true);
           const client = createMegaYoursClient(chromiaSession);
-          console.log(`Creating client for target chain: ${pendingTransfer.targetBlockchainRid}`);
-          console.log(`useNFTTransfer: Session before transfer - auth descriptor: ${chromiaSession.account.authenticator.keyHandlers[0].authDescriptor.id.toString('hex')}`);
           const targetChain = await createClient({
             directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL,
             blockchainRid: pendingTransfer.targetBlockchainRid
@@ -54,9 +51,7 @@ export function useNFTTransfer() {
             pendingTransfer.tokenId,
             BigInt(1)
           );
-          
-          console.log(`Transfer executed`);
-          
+                    
           // Call onSuccess if provided
           pendingTransfer.onSuccess?.();
         } catch (error) {
@@ -83,11 +78,9 @@ export function useNFTTransfer() {
     const sourceChainRid = selectedChain.blockchainRid;
     
     // Set transfer in progress flag immediately
-    console.log('Setting transfer in progress');
     transferInProgressRef.current = true;
     
     // Always store the transfer details and trigger authentication to ensure we have a fresh session
-    console.log(`Storing transfer details and ensuring fresh session`);
     setPendingTransfer({ 
       sourceBlockchainRid: sourceChainRid,
       targetBlockchainRid, 

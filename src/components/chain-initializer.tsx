@@ -2,7 +2,6 @@
 
 import { useChain } from '@/lib/chain-switcher/chain-context';
 import { useEffect, useRef } from 'react';
-import dapps from '@/config/dapps';
 
 interface ChainInitializerProps {
   chainName: string;  // This is actually the blockchain RID from the URL
@@ -17,7 +16,8 @@ export function ChainInitializer({ chainName }: ChainInitializerProps) {
     
     if (chainName.toLowerCase() !== selectedChain.blockchainRid.toLowerCase()) {
       initializedRef.current = true;
-      switchChain(chainName);
+      // Just update the chain state without triggering navigation
+      switchChain(chainName, { skipNavigation: true });
     }
   }, [chainName, selectedChain.blockchainRid, switchChain]);
 

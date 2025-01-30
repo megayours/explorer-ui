@@ -5,7 +5,7 @@ import { ChevronDown, Globe } from 'lucide-react';
 import { useChain } from '@/lib/chain-switcher/chain-context';
 import dapps from '@/config/dapps';
 import { useChromia } from '@/lib/chromia-connect/chromia-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface ChainSwitcherProps {
   isHeader?: boolean;
@@ -16,9 +16,17 @@ export function ChainSwitcher({ isHeader = false }: ChainSwitcherProps) {
   const { selectedChain } = useChain();
   const { disconnectFromChromia } = useChromia();
   const router = useRouter();
+  const pathname = usePathname();
 
-  const handleChainSwitch = (chain: typeof dapps[0]) => {
-    router.push(`/${chain.blockchainRid}`);
+  const handleChainSwitch = (chain: typeof dapps[0]) => {    
+    // Extract accountId from current path if it exists
+    const pathParts = pathname.split('/');
+    const accountId = pathParts.length > 2 ? pathParts[2] : null;
+    
+    // Navigate to the new chain, preserving accountId if it exists
+    const newPath = accountId ? `/${chain.blockchainRid}/${accountId}` : `/${chain.blockchainRid}`;
+    router.push(newPath);
+    
     disconnectFromChromia();
     setIsOpen(false);
   };

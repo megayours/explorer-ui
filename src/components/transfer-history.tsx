@@ -1,30 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Loader2, ArrowDownLeft, ArrowUpRight, ArrowLeftRight } from 'lucide-react';
 import { createClient } from 'postchain-client';
 import { createMegaYoursQueryClient, TokenMetadata, Project, Paginator } from '@megayours/sdk';
 import { env } from '@/env';
 import { useChain } from '@/lib/chain-switcher/chain-context';
-import { useAccount } from 'wagmi';
 import { usePaginatedData } from '@/lib/hooks/use-paginated-data';
-import { getAccountId } from '@/lib/utils/chain';
 import { PaginationControls } from '@/components/pagination-controls';
 import { useMetadataCache } from '@/lib/hooks/use-metadata-cache';
+import { EmptyState } from './empty-state';
 
 const PAGE_SIZE = 10;
-
-interface TransferHistoryEntry {
-  token: {
-    project: Project;
-    collection: string;
-    id: bigint;
-  };
-  blockchain_rid: Buffer;
-  type: 'sent' | 'received';
-  amount: bigint;
-  op_index: number;
-}
 
 interface Transfer {
   token: {
@@ -32,22 +19,24 @@ interface Transfer {
     collection: string;
     id: bigint;
   };
-  blockchain_rid: string | null;
+  blockchain_rid: Buffer | null;
   type: 'sent' | 'received';
   amount: bigint;
   decimals: number;
   op_index: number;
 }
 
-export function TransferHistory() {
+export function TransferHistory({ accountId }: { accountId: string | null }) {
   const { selectedChain } = useChain();
-  const { address, isConnected } = useAccount();
   const [metadataMap, setMetadataMap] = useState<Record<string, TokenMetadata | null>>({});
   const [isLoadingMetadata, setIsLoadingMetadata] = useState<Record<string, boolean>>({});
   const { getMetadata, setMetadata } = useMetadataCache();
+  const loadedRef = useRef<{chain: string, loaded: boolean}>({ chain: '', loaded: false });
+  const isNavigatingRef = useRef(false);
 
-  async function fetchTransfers(accountId: Buffer | null): Promise<Paginator<Transfer>> {
+  async function fetchTransfers(): Promise<Paginator<Transfer>> {
     if (!accountId) {
+      console.log('No accountId found');
       return {
         data: [] as Transfer[],
         fetchNext: () => Promise.resolve(null as unknown as Paginator<Transfer>)
@@ -59,7 +48,7 @@ export function TransferHistory() {
       blockchainRid: selectedChain.blockchainRid
     });
     const queryClient = createMegaYoursQueryClient(client);
-    const result = await queryClient.getTransferHistoryByAccount(accountId, undefined, PAGE_SIZE);
+    const result = await queryClient.getTransferHistoryByAccount(Buffer.from(accountId, 'hex'), undefined, PAGE_SIZE);
     
     // Convert Buffer to string for blockchain_rid
     const transfers = result.data.map(entry => ({
@@ -96,26 +85,33 @@ export function TransferHistory() {
   } = usePaginatedData<Transfer>({
     pageSize: PAGE_SIZE,
     fetchInitialPage: async () => {
-      if (isConnected && address) {
-        const client = await createClient({
-          directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL,
-          blockchainRid: selectedChain.blockchainRid
-        });
-        const accountId = await getAccountId(client, address);
-        return await fetchTransfers(accountId);
-      }
-      return {
-        data: [] as Transfer[],
-        fetchNext: () => Promise.resolve(null as unknown as Paginator<Transfer>)
-      } as Paginator<Transfer>;
+      return await fetchTransfers();
     },
   });
 
+  // Handle initial loading and chain changes
   useEffect(() => {
-    if (isConnected) {
+    // Reset loaded state when chain changes
+    if (loadedRef.current.chain !== selectedChain.blockchainRid) {
+      loadedRef.current.loaded = false;
+    }
+    
+    // Only load if we have an accountId and haven't loaded for this chain yet
+    if (accountId && !loadedRef.current.loaded) {
+      loadedRef.current = { chain: selectedChain.blockchainRid, loaded: true };
       void loadInitialPage();
     }
-  }, [isConnected, selectedChain.blockchainRid]);
+  }, [accountId, selectedChain.blockchainRid, loadInitialPage]);
+
+  // Handle empty page navigation
+  useEffect(() => {
+    if (transfers.length === 0 && page > 0 && !isNavigatingRef.current) {
+      isNavigatingRef.current = true;
+      void loadPage('previous').finally(() => {
+        isNavigatingRef.current = false;
+      });
+    }
+  }, [transfers.length, page, loadPage]);
 
   const fetchMetadata = async (transfer: Transfer) => {
     const key = `${transfer.token.collection}-${transfer.token.id}`;
@@ -157,23 +153,28 @@ export function TransferHistory() {
     });
   }, [transfers]);
 
-  if (!isConnected) {
-    return null;
-  }
-
-  function truncateBlockchainRid(rid: string | null): string {
+  function truncateBlockchainRid(rid: Buffer | null): string {
     if (!rid) return 'Unknown';
-    return rid.slice(0, 8) + '...' + rid.slice(-8);
+    return rid.toString('hex').slice(0, 8) + '...' + rid.toString('hex').slice(-8);
   }
 
-  if (isLoading) {
+  // Show loading state only on initial load
+  if (isLoading && !loadedRef.current.loaded) {
     return <div className="flex justify-center items-center h-screen">
       <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
     </div>;
   }
 
+  // Only show empty state on initial load (page 0) with no transfers
+  if (!accountId || (transfers.length === 0 && page === 0)) {
+    return <EmptyState type="transfers" accountId={accountId} />;
+  }
+
+  // Determine if we can load more pages
+  const canLoadMore = hasMore && transfers.length === PAGE_SIZE;
+
   return (
-    <div>
+    <div className="space-y-4">
       <h2 className="text-xl font-semibold text-white mb-4">Transfer History</h2>
       <div className="space-y-2">
         {transfers.map((transfer) => {
@@ -239,23 +240,17 @@ export function TransferHistory() {
           );
         })}
 
-        {transfers.length === 0 && !isLoading && (
-          <div className="text-center py-8">
-            <div className="inline-flex flex-col items-center px-6 py-4 rounded-xl bg-zinc-800/30 border border-zinc-700/50">
-              <div className="w-10 h-10 rounded-full bg-zinc-700/50 flex items-center justify-center mb-2">
-                <span className="text-lg">📜</span>
-              </div>
-              <h3 className="text-base font-semibold text-white mb-1">No Transfers</h3>
-              <p className="text-sm text-zinc-400">No transfer history found</p>
-            </div>
-          </div>
-        )}
-
         <PaginationControls
           page={page}
           isLoading={isLoading}
-          hasMore={hasMore}
-          onPageChange={loadPage}
+          hasMore={canLoadMore}
+          onPageChange={async (direction) => {
+            if (direction === 'next') {
+              await loadPage('next');
+            } else {
+              await loadPage('previous');
+            }
+          }}
         />
       </div>
     </div>
