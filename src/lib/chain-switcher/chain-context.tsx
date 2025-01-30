@@ -2,8 +2,8 @@
 
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { createClient, IClient, FailoverStrategy } from 'postchain-client';
-import { env } from '@/env';
+import { IClient } from 'postchain-client';
+import { useChainClient, useInvalidateChainClient } from '@/lib/hooks/use-chain-client';
 import dapps from '@/config/dapps';
 
 interface Chain {
@@ -14,6 +14,8 @@ interface Chain {
 type ChainContextType = {
   selectedChain: Chain;
   chainClient: IClient | null;
+  isInitializing: boolean;
+  isReady: boolean;
   switchChain: (blockchainRid: string, options?: { skipNavigation?: boolean }) => void;
 };
 
@@ -25,22 +27,23 @@ interface ChainProviderProps {
 }
 
 export function ChainProvider({ children, initialBlockchainRid }: ChainProviderProps) {
-  // Start with the initialBlockchainRid for consistent server/client rendering
   const initialChain = dapps.find(d => d.blockchainRid.toLowerCase() === initialBlockchainRid.toLowerCase()) || {
     name: 'Custom Chain',
     blockchainRid: initialBlockchainRid
   };
 
   const [selectedChain, setSelectedChain] = useState<Chain>(initialChain);
-  const [chainClient, setChainClient] = useState<IClient | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
+  const { data: chainClient, isLoading: isInitializing, isSuccess: isReady } = useChainClient(selectedChain.blockchainRid);
+  const { invalidateChainClient } = useInvalidateChainClient();
   const router = useRouter();
   const pathname = usePathname();
 
   // After mount, sync with URL if needed
   useEffect(() => {
+    console.log('URL sync effect', { pathname, selectedChainRid: selectedChain.blockchainRid });
     const urlChainRid = pathname.split('/')[1];
     if (urlChainRid && urlChainRid.toLowerCase() !== selectedChain.blockchainRid.toLowerCase()) {
+      console.log('Chain mismatch, updating to URL chain', { urlChainRid });
       const urlChain = dapps.find(d => d.blockchainRid.toLowerCase() === urlChainRid.toLowerCase()) || {
         name: 'Custom Chain',
         blockchainRid: urlChainRid
@@ -49,31 +52,8 @@ export function ChainProvider({ children, initialBlockchainRid }: ChainProviderP
     }
   }, [pathname, selectedChain.blockchainRid]);
 
-  const createChainClient = useCallback(async (chain: Chain) => {
-    try {
-      const client = await createClient({
-        directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL,
-        blockchainRid: chain.blockchainRid,
-        failOverConfig: {
-          attemptsPerEndpoint: 20,
-          strategy: FailoverStrategy.TryNextOnError
-        }
-      });
-      setChainClient(client);
-    } catch (error) {
-      console.error('Failed to create chain client:', error);
-      setChainClient(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isMounted) {
-      setIsMounted(true);
-      void createChainClient(selectedChain);
-    }
-  }, [createChainClient, isMounted, selectedChain]);
-
   const switchChain = useCallback((blockchainRid: string, options?: { skipNavigation?: boolean }) => {
+    console.log('switchChain called', { blockchainRid, skipNavigation: options?.skipNavigation });
     const chain = dapps.find(d => d.blockchainRid.toLowerCase() === blockchainRid.toLowerCase()) || {
       name: 'Custom Chain',
       blockchainRid
@@ -81,18 +61,19 @@ export function ChainProvider({ children, initialBlockchainRid }: ChainProviderP
     
     // Only update if the chain has actually changed
     if (chain.blockchainRid.toLowerCase() !== selectedChain.blockchainRid.toLowerCase()) {
+      // Invalidate the old chain client before switching
+      invalidateChainClient(selectedChain.blockchainRid);
       setSelectedChain(chain);
-      void createChainClient(chain);
 
       // Only navigate if not explicitly skipped
       if (!options?.skipNavigation) {
         router.push(`/${blockchainRid}`);
       }
     }
-  }, [createChainClient, router, selectedChain.blockchainRid]);
+  }, [router, selectedChain.blockchainRid, invalidateChainClient]);
 
   return (
-    <ChainContext.Provider value={{ selectedChain, chainClient, switchChain }}>
+    <ChainContext.Provider value={{ selectedChain, chainClient: chainClient ?? null, isInitializing, isReady, switchChain }}>
       {children}
     </ChainContext.Provider>
   );

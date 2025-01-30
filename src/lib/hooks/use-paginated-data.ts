@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Paginator } from '@megayours/sdk';
 
 interface UsePaginatedDataOptions<T> {
@@ -29,7 +29,7 @@ export function usePaginatedData<T>({
   const paginatorHistoryRef = useRef<Paginator<T>[]>([]);
   const isLoadingRef = useRef(false);
 
-  const loadInitialPage = async () => {
+  const loadInitialPage = useCallback(async () => {
     if (isLoadingRef.current) return;
 
     try {
@@ -49,9 +49,9 @@ export function usePaginatedData<T>({
       setIsLoading(false);
       isLoadingRef.current = false;
     }
-  };
+  }, [fetchInitialPage, pageSize]);
 
-  const loadPage = async (direction: 'next' | 'previous') => {
+  const loadPage = useCallback(async (direction: 'next' | 'previous') => {
     if (isLoadingRef.current) return;
     if (direction === 'next' && !hasMore) return;
     if (direction === 'previous' && page === 1) return;
@@ -92,7 +92,7 @@ export function usePaginatedData<T>({
       setIsLoading(false);
       isLoadingRef.current = false;
     }
-  };
+  }, [fetchInitialPage, hasMore, page, pageSize]);
 
   return {
     items,

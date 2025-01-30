@@ -1,38 +1,30 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { useWalletNFTs } from '@/lib/hooks/use-wallet-nfts';
-import { NFTCard } from './nft-card';
-import { PaginationControls } from './pagination-controls';
+import { useNFTs } from '@/lib/hooks/use-nfts';
 import { useChain } from '@/lib/chain-switcher/chain-context';
-import { EmptyState } from './empty-state';
-import { colors } from '@/lib/theme';
+import { PaginationControls } from './pagination-controls';
+import { NFTCard } from './nft-card';
 
-export function NFTGrid({ accountId }: { accountId: string | null }) {
-  const { nfts, isLoading, page, hasMore, loadPage, loadInitialPage } = useWalletNFTs(accountId);
+interface NFTGridProps {
+  accountId: string | null;
+  className?: string;
+}
+
+export function NFTGrid({ accountId, className }: NFTGridProps) {
   const { selectedChain } = useChain();
-  const loadedRef = useRef<{chain: string, loaded: boolean}>({ chain: '', loaded: false });
+  const {
+    data: nfts,
+    isLoading,
+    fetchNextPage,
+    fetchPreviousPage,
+    hasNextPage,
+    hasPreviousPage,
+    pageIndex,
+    refetch
+  } = useNFTs(selectedChain.blockchainRid, accountId);
 
-  useEffect(() => {
-    // Reset loaded state when chain or accountId changes
-    if (loadedRef.current.chain !== selectedChain.blockchainRid) {
-      loadedRef.current.loaded = false;
-    }
-    
-    // Only load if we have an accountId and haven't loaded for this chain yet
-    if (accountId && !loadedRef.current.loaded) {
-      loadedRef.current = { chain: selectedChain.blockchainRid, loaded: true };
-      void loadInitialPage();
-    }
-
-    // Handle navigation to empty pages
-    if (nfts.length === 0 && page > 0) {
-      void loadPage('previous');
-    }
-  }, [accountId, selectedChain.blockchainRid, loadInitialPage, nfts.length, page, loadPage]);
-
-  // Show loading state only on initial load
-  if (isLoading && !loadedRef.current.loaded) {
+  // Show loading state
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -40,37 +32,39 @@ export function NFTGrid({ accountId }: { accountId: string | null }) {
     );
   }
 
-  // Only show empty state on initial load with no NFTs
-  if (!accountId || (nfts.length === 0 && page === 0)) {
-    return <EmptyState type="nfts" accountId={accountId} />;
+  // Show empty state only if we have no data and it's the first page
+  if (!nfts?.data.length && pageIndex === 1) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-text-secondary">No NFTs found</p>
+      </div>
+    );
   }
 
-  // Determine if we can load more pages
-  const canLoadMore = hasMore && nfts.length === 10; // We know each page should have 10 items
-
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-primary mb-4">Tokens</h2>
+    <div className={`space-y-4 ${className}`}>
+      {/* Show NFTs if we have any */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {nfts.map((nft) => (
+        {nfts?.data.map((nft) => (
           <NFTCard
             key={`${nft.project.blockchain_rid}-${nft.token_id}`}
             nft={nft}
-            onRefresh={loadInitialPage}
-            onTransferSuccess={loadInitialPage}
+            onRefresh={refetch}
+            onTransferSuccess={refetch}
           />
         ))}
       </div>
 
+      {/* Always show pagination controls if we're not on the first empty page */}
       <PaginationControls
-        page={page}
+        page={pageIndex}
         isLoading={isLoading}
-        hasMore={canLoadMore}
+        hasMore={hasNextPage}
         onPageChange={async (direction) => {
           if (direction === 'next') {
-            await loadPage('next');
+            await fetchNextPage();
           } else {
-            await loadPage('previous');
+            await fetchPreviousPage();
           }
         }}
       />
