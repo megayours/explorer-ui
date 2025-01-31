@@ -9,14 +9,13 @@ import Link from 'next/link';
 import { CopyableId } from '@/components/copyable-id';
 import { Button } from './ui/button';
 import { TransferHistoryEntry } from './transfer-history-entry';
+import { PaginationControls } from './pagination-controls';
 
 const PAGE_SIZE = 10;
 
 interface ChainInfoProps {
   fullWidth?: boolean;
 }
-
-
 
 function ChainDetails() {
   const { selectedChain } = useChain();
@@ -63,7 +62,9 @@ export function ChainInfo({ fullWidth = false }: ChainInfoProps) {
     items: transfers,
     isLoading: isLoadingTransfers,
     loadInitialPage,
-    loadPage
+    loadPage,
+    page,
+    hasMore
   } = usePaginatedData({
     pageSize: PAGE_SIZE,
     fetchInitialPage: fetchPage,
@@ -110,13 +111,23 @@ export function ChainInfo({ fullWidth = false }: ChainInfoProps) {
         {/* Recent Global Transfers */}
         <div className="p-6">
           <h3 className="text-lg font-semibold text-primary mb-4">Recent Chain Activity</h3>
-          <div className="space-y-3">
-            {transfers.map((transfer) => (
-              <TransferHistoryEntry
-                key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
-                transfer={transfer}
-              />
-            ))}
+          <div className="space-y-4">
+            <div className="space-y-3">
+              {transfers.map((transfer) => (
+                <TransferHistoryEntry
+                  key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
+                  transfer={transfer}
+                />
+              ))}
+            </div>
+            <PaginationControls
+              page={page}
+              isLoading={isLoadingTransfers}
+              hasMore={hasMore}
+              onPageChange={async (direction) => {
+                await loadPage(direction);
+              }}
+            />
           </div>
         </div>
       </div>
@@ -150,13 +161,23 @@ export function ChainInfo({ fullWidth = false }: ChainInfoProps) {
       {/* Recent Global Transfers */}
       <div className="p-2">
         <h3 className="text-lg font-semibold text-primary mb-4">Recent Chain Activity</h3>
-        <div className="space-y-3">
-          {transfers.map((transfer) => (
-            <TransferHistoryEntry
-              key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
-              transfer={transfer}
-            />
-          ))}
+        <div className="space-y-4">
+          <div className="space-y-3">
+            {transfers.map((transfer) => (
+              <TransferHistoryEntry
+                key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
+                transfer={transfer}
+              />
+            ))}
+          </div>
+          <PaginationControls
+            page={page}
+            isLoading={isLoadingTransfers}
+            hasMore={hasMore}
+            onPageChange={async (direction) => {
+              await loadPage(direction);
+            }}
+          />
         </div>
       </div>
     </div>

@@ -1,7 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createClient, IClient, FailoverStrategy } from 'postchain-client';
 import { env } from '@/env';
-import { useState, useEffect } from 'react';
 
 export const chainKeys = {
   all: ['chain'] as const,
@@ -14,7 +13,7 @@ async function createChainClient(blockchainRid: string, signal?: AbortSignal): P
     directoryNodeUrlPool: env.NEXT_PUBLIC_DIRECTORY_NODE_URL_POOL,
     blockchainRid,
     failOverConfig: {
-      attemptsPerEndpoint: 20,
+      attemptsPerEndpoint: 3,
       strategy: FailoverStrategy.TryNextOnError
     }
   });
@@ -22,7 +21,6 @@ async function createChainClient(blockchainRid: string, signal?: AbortSignal): P
   // Add cancellation check
   signal?.addEventListener('abort', () => {
     console.log('Aborting chain client creation for', blockchainRid);
-    client.close();
   });
 
   (client as any).blockchainRid = blockchainRid;

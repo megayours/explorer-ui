@@ -91,6 +91,10 @@ export function TransferHistory({ accountId }: { accountId: string | null }) {
     pageIndex
   } = useTransferHistory(selectedChain.blockchainRid, accountId, PAGE_SIZE);
 
+  if (!accountId || !selectedChain.blockchainRid) {
+    return null;
+  }
+
   // Show loading state
   if (isLoading) {
     return (

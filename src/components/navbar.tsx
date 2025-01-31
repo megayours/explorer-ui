@@ -5,6 +5,7 @@ import { ConnectButton } from "./connect-button";
 import { ChainSwitcher } from "./chain-switcher";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import Link from "next/link";
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -14,9 +15,10 @@ export function Navbar() {
       <div className="mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex h-16 sm:h-20 items-center justify-between gap-2 sm:gap-4">
           {/* Logo Section */}
-          <div className="flex items-center min-w-0">
-            <div className="relative h-7 w-28 sm:h-10 sm:w-40">
-              <Image
+          <Link href="/">
+            <div className="flex items-center min-w-0">
+              <div className="relative h-7 w-28 sm:h-10 sm:w-40">
+                <Image
                 src="/megayours.png"
                 alt="MegaYours Logo"
                 fill
@@ -27,6 +29,7 @@ export function Navbar() {
             </div>
             <span className="ml-1.5 sm:ml-2 text-sm sm:text-lg font-medium text-foreground whitespace-nowrap">| Explorer</span>
           </div>
+          </Link>
 
           {/* Center - Chain Switcher */}
           <div className="flex-1 flex items-center justify-center">

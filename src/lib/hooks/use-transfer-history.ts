@@ -1,6 +1,7 @@
 import { TransferHistory, Paginator, createMegaYoursQueryClient } from "@megayours/sdk";
 import { useChainClient } from './use-chain-client';
 import { usePaginator } from './use-paginator';
+import { useMemo, useCallback } from 'react';
 
 export const transferKeys = {
   all: ['transfers'] as const,
@@ -12,28 +13,62 @@ export const transferKeys = {
 
 export function useTransferHistory(blockchainRid: string, accountId: string | null, pageSize: number = 10) {
   const { data: chainClient, isLoading: isLoadingClient } = useChainClient(blockchainRid);
-  console.log('useTransferHistory', blockchainRid, accountId, pageSize);
-  return usePaginator<TransferHistory>(
-    transferKeys.history(blockchainRid, accountId),
-    async () => {
-      if (!chainClient || !accountId || !blockchainRid) {
-        console.log('useTransferHistory', 'no chain client or account id');
-        return {
-          data: [],
-          fetchNext: () => Promise.resolve(null as unknown as Paginator<TransferHistory>)
-        } as Paginator<TransferHistory>;
-      }
+  
+  // Add dependency debug
+  console.log('useTransferHistory render', {
+    blockchainRid,
+    accountId,
+    chainClientReady: !!chainClient?.config?.blockchainRid,
+    clientChain: chainClient?.config?.blockchainRid,
+    isLoadingClient
+  });
 
-      const queryClient = createMegaYoursQueryClient(chainClient);
-      console.log('useTransferHistory', 'querying');
-      return queryClient.getTransferHistoryByAccount(
-        Buffer.from(accountId, 'hex'),
-        undefined,
-        pageSize
-      );
-    },
+  const queryKey = useMemo(() => {
+    const key = transferKeys.history(blockchainRid, accountId);
+    console.log('Transfer query key recomputed:', key);
+    return key;
+  }, [blockchainRid, accountId]);
+
+  const fetchFirstPage = useCallback(async () => {
+    console.log('useTransferHistory fetchFirstPage called', {
+      hasChainClient: !!chainClient,
+      hasBlockchainRid: !!chainClient?.config?.blockchainRid,
+      hasAccountId: !!accountId,
+      isLoadingClient
+    });
+
+    if (!chainClient?.config?.blockchainRid || !accountId) {
+      console.log('useTransferHistory', 'no chain client or account id');
+      return { data: [], fetchNext: () => Promise.resolve(null!) };
+    }
+
+    console.log('useTransferHistory', 'querying');
+
+    const queryClient = createMegaYoursQueryClient(chainClient);
+    return queryClient.getTransferHistoryByAccount(
+      Buffer.from(accountId, 'hex'),
+      undefined,
+      pageSize
+    );
+  }, [chainClient, accountId, pageSize, isLoadingClient]);
+
+  const isEnabled = useMemo(() => {
+    const enabled = !isLoadingClient && !!chainClient && chainClient.config.blockchainRid === blockchainRid && !!accountId;
+    console.log('useTransferHistory enabled state:', {
+      enabled,
+      isLoadingClient,
+      hasChainClient: !!chainClient,
+      chainMatches: chainClient?.config?.blockchainRid === blockchainRid,
+      hasAccountId: !!accountId
+    });
+    return enabled;
+  }, [chainClient, blockchainRid, accountId, isLoadingClient]);
+
+  return usePaginator<TransferHistory>(
+    queryKey,
+    fetchFirstPage,
     {
-      enabled: !!chainClient && !!accountId && !isLoadingClient && !!blockchainRid,
+      enabled: isEnabled
     }
   );
 }

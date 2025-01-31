@@ -4,6 +4,9 @@ import { useNFTs } from '@/lib/hooks/use-nfts';
 import { useChain } from '@/lib/chain-switcher/chain-context';
 import { PaginationControls } from './pagination-controls';
 import { NFTCard } from './nft-card';
+import { useEffect, useState } from 'react';
+import { useAccountId } from '@/lib/hooks/use-account.id';
+import { useAccount } from 'wagmi';
 
 interface NFTGridProps {
   accountId: string | null;
@@ -12,6 +15,8 @@ interface NFTGridProps {
 
 export function NFTGrid({ accountId, className }: NFTGridProps) {
   const { selectedChain } = useChain();
+  const { address } = useAccount();
+
   const {
     data: nfts,
     isLoading,
@@ -22,6 +27,27 @@ export function NFTGrid({ accountId, className }: NFTGridProps) {
     pageIndex,
     refetch
   } = useNFTs(selectedChain.blockchainRid, accountId);
+
+  const { getAccountId } = useAccountId();
+  const [signedInAccountId, setSignedInAccountId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!address) return;
+    
+    // Get the accountId for the connected wallet
+    getAccountId().then((id) => {
+      const newAccountId = id?.toString('hex') ?? null;
+      setSignedInAccountId(newAccountId);
+    });
+  }, [getAccountId, address]);
+
+  useEffect(() => {
+    console.log(`NFTs: ${nfts?.data.length}`);
+  }, [nfts])
+
+  if (!accountId || !selectedChain.blockchainRid) {
+    return null;
+  }
 
   // Show loading state
   if (isLoading) {
@@ -41,6 +67,9 @@ export function NFTGrid({ accountId, className }: NFTGridProps) {
     );
   }
 
+  console.log('signedInAccountId', signedInAccountId);
+  console.log('accountId', accountId);
+
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Show NFTs if we have any */}
@@ -51,6 +80,7 @@ export function NFTGrid({ accountId, className }: NFTGridProps) {
             nft={nft}
             onRefresh={refetch}
             onTransferSuccess={refetch}
+            isOwner={accountId === signedInAccountId}
           />
         ))}
       </div>
