@@ -24,19 +24,22 @@ export function JsonViewer({ data, className }: JsonViewerProps) {
   };
 
   return (
-    <div className={cn("relative group bg-zinc-800/50 rounded-md border border-zinc-700/50", className)}>
+    <div className={cn(
+      "relative group bg-background-light rounded-md border border-border", 
+      className
+    )}>
       <button
         onClick={copyToClipboard}
-        className="absolute top-1 right-1 p-1 rounded hover:bg-zinc-700/50 transition-colors opacity-0 group-hover:opacity-100"
+        className="absolute top-1 right-1 p-1 rounded hover:bg-background/80 transition-colors opacity-0 group-hover:opacity-100"
         title="Copy JSON"
       >
         {isCopied ? (
-          <CheckIcon className="h-3 w-3 text-green-400" />
+          <CheckIcon className="h-3 w-3 text-green-500" />
         ) : (
-          <CopyIcon className="h-3 w-3 text-zinc-400" />
+          <CopyIcon className="h-3 w-3 text-text-secondary" />
         )}
       </button>
-      <pre className="overflow-x-auto p-2 text-xs font-mono text-zinc-300 max-h-[100px] scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
+      <pre className="overflow-x-auto p-2 text-xs font-mono text-text-primary max-h-[100px] scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
         {formattedJson}
       </pre>
     </div>

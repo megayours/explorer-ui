@@ -9,12 +9,34 @@ import { useChain } from '@/lib/chain-switcher/chain-context';
 import { useTokenMetadata } from '@/lib/hooks/use-token-metadata';
 import { useSpecificTokenTransferHistory } from '@/lib/hooks/use-transfer-history';
 import { PaginationControls } from './pagination-controls';
+import { JsonViewer } from './json-viewer';
 import Image from 'next/image';
 
 const PAGE_SIZE = 10;
 
 interface TokenDetailsProps {
   tokenUid: string;
+}
+
+function AttributeValue({ value }: { value: unknown }) {
+  // If the value is an object or array, render it as JSON
+  if (typeof value === 'object' && value !== null) {
+    return <JsonViewer data={value} />;
+  }
+
+  const stringValue = String(value);
+
+  // If it's a long string (more than 30 chars), make it copyable
+  if (stringValue.length > 30) {
+    return <CopyableId id={stringValue} />;
+  }
+
+  // For shorter strings, just display with truncation
+  return (
+    <div className="truncate" title={stringValue}>
+      {stringValue}
+    </div>
+  );
 }
 
 export function TokenDetails({ tokenUid }: TokenDetailsProps) {
@@ -73,7 +95,7 @@ export function TokenDetails({ tokenUid }: TokenDetailsProps) {
   const description = metadata?.properties?.description?.toString() || 'No description available';
   const attributes = Object.entries(metadata?.properties || {}).map(([trait_type, value]) => ({
     trait_type,
-    value: value?.toString() || ''
+    value: value
   })).filter(attr => !['image', 'description'].includes(attr.trait_type)); // Exclude image and description from attributes display
 
   return (
@@ -126,8 +148,10 @@ export function TokenDetails({ tokenUid }: TokenDetailsProps) {
                 key={index}
                 className="p-3 rounded-lg bg-background-light border border-border"
               >
-                <div className="text-xs text-text-tertiary">{trait_type}</div>
-                <div className="text-sm font-medium text-text-primary">{value}</div>
+                <div className="text-xs text-text-tertiary truncate" title={trait_type}>{trait_type}</div>
+                <div className="text-sm font-medium text-text-primary">
+                  <AttributeValue value={value} />
+                </div>
               </div>
             ))}
           </div>
