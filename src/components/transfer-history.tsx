@@ -6,6 +6,7 @@ import { useTransferHistory } from '@/lib/hooks/use-transfer-history';
 import { useChain } from '@/lib/chain-switcher/chain-context';
 import { useTokenMetadata } from '@/lib/hooks/use-token-metadata';
 import { PaginationControls } from './pagination-controls';
+import { TransferHistoryEntry } from './transfer-history-entry';
 
 const PAGE_SIZE = 10;
 
@@ -113,11 +114,11 @@ export function TransferHistory({ accountId }: { accountId: string | null }) {
       {/* Show transfers if we have any */}
       <div className="space-y-4">
         {transfers?.data.map((transfer) => (
-          <TransferItem
-            key={`${transfer.token.id}-${transfer.op_index}-${Math.random() * 100000}`}
-            transfer={transfer}
-            accountId={accountId}
-          />
+          <TransferHistoryEntry
+          key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
+          transfer={transfer}
+          displayAccountAvatar={false}
+        />
         ))}
       </div>
 

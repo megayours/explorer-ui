@@ -7,8 +7,6 @@ import { ChainInfo } from './chain-info';
 import { useChain } from '@/lib/chain-switcher/chain-context';
 
 export function MainContent({ accountId }: { accountId: string | null }) {
-  const { selectedChain } = useChain();
-
   if (!accountId) {
     return (
       <div className="mx-8 py-8">
@@ -21,14 +19,17 @@ export function MainContent({ accountId }: { accountId: string | null }) {
     <div className="mx-8 py-8">
       <div className="space-y-8 xl:space-y-0 xl:grid xl:grid-cols-12 xl:gap-8">
         {/* Chain Information */}
-        <div className="xl:col-span-3">
+        <div className="xl:col-span-4">
           <div className="xl:sticky xl:top-24">
-            <ChainInfo />
+            <div className="bg-card border border-border rounded-xl p-6">
+              <ChainInfo />
+            </div>
           </div>
         </div>
 
         {/* Account Overview */}
-        <div className="xl:col-span-9 space-y-6">
+        <div className="xl:col-span-8 space-y-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           {/* Account Header */}
           <AccountHeader accountId={accountId} />
 
@@ -44,6 +45,7 @@ export function MainContent({ accountId }: { accountId: string | null }) {
             <div className="lg:col-span-4 space-y-6">
               <h2 className="text-xl font-semibold text-primary">Transfer History</h2>
               <TransferHistory accountId={accountId} />
+            </div>
             </div>
           </div>
         </div>

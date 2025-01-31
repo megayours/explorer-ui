@@ -1,7 +1,6 @@
 'use client';
 
-import { User, Copy, CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { User } from 'lucide-react';
 import { CopyableId } from '@/components/copyable-id';
 
 interface AccountHeaderProps {
@@ -10,7 +9,7 @@ interface AccountHeaderProps {
 
 export function AccountHeader({ accountId }: AccountHeaderProps) {
   return (
-    <div className="mb-8 p-6 rounded-xl bg-card border border-border shadow-sm">
+    <div className="mb-2 p-6">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
           <User className="h-6 w-6 text-text-secondary" />

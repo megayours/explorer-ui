@@ -1,6 +1,7 @@
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { Paginator } from '@megayours/sdk';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function usePaginator<T>(
   queryKey: readonly unknown[],
@@ -10,14 +11,37 @@ export function usePaginator<T>(
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState<Paginator<T>[]>([]);
   const [isLastPage, setIsLastPage] = useState(false);
+  const queryKeyString = JSON.stringify(queryKey);
+  const activeQueryKeyRef = useRef(queryKeyString);
+
+  // Reset state when queryKey changes
+  useEffect(() => {
+    activeQueryKeyRef.current = queryKeyString;
+    setPage(1);
+    setPages([]);
+    setIsLastPage(false);
+    console.log('Paginator state reset for new query key:', queryKeyString);
+  }, [queryKeyString]);
+
+  const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey,
     queryFn: async () => {
+      const currentKey = activeQueryKeyRef.current;
+      console.log('Fetching first page for query key:', currentKey);
+      
       const result = await fetchFirstPage();
+      
+      // Check if we're still handling the same query key
+      if (activeQueryKeyRef.current !== currentKey) {
+        console.log('Abandoning stale query result for key:', currentKey);
+        return null as unknown as Paginator<T>;
+      }
+
       setPages([result]);
       setPage(1);
-      setIsLastPage(!result.data.length || result.data.length < 10); // Assuming pageSize is 10
+      setIsLastPage(!result.data.length || result.data.length < 10);
       return result;
     },
     ...options
@@ -45,6 +69,13 @@ export function usePaginator<T>(
   const currentPaginator = pages[page - 1];
   const hasNextPage = !isLastPage && currentPaginator?.data.length === 10;
   const hasPreviousPage = page > 1;
+
+  // Add query cancellation on unmount
+  useEffect(() => {
+    return () => {
+      queryClient.cancelQueries(queryKey);
+    };
+  }, [queryKeyString]);
 
   return {
     ...query,

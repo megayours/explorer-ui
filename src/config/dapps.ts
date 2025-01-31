@@ -6,6 +6,7 @@ const dapps = [
   {
     name: "PFP Demo",
     blockchainRid: "ECB7110BB20278D1661FB4B0B2F54B814CE0BBCD7C4BE194B678A2AC3B1874A7",
+    dappUrl: "https://pfp-demo.vercel.app/",
   },
 ];
 
