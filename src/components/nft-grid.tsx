@@ -62,16 +62,32 @@ export function NFTGrid({ accountId, className }: NFTGridProps) {
   if (!nfts?.data.length && pageIndex === 1) {
     return (
       <div className="text-center py-8">
-        <p className="text-text-secondary">No NFTs found</p>
+        <p className="text-text-secondary">No tokens found</p>
       </div>
     );
   }
 
-  console.log('signedInAccountId', signedInAccountId);
-  console.log('accountId', accountId);
-
   return (
     <div className={`space-y-4 ${className}`}>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-primary">Tokens</h2>
+        {nfts?.data.length > 0 && (hasNextPage || hasPreviousPage || pageIndex > 1) && (
+          <PaginationControls
+            page={pageIndex}
+            isLoading={isLoading}
+            hasMore={hasNextPage}
+            onPageChange={async (direction) => {
+              if (direction === 'next') {
+                await fetchNextPage();
+              } else {
+                await fetchPreviousPage();
+              }
+            }}
+            variant="subtle"
+          />
+        )}
+      </div>
+
       {/* Show NFTs if we have any */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {nfts?.data.map((nft) => (
@@ -84,20 +100,6 @@ export function NFTGrid({ accountId, className }: NFTGridProps) {
           />
         ))}
       </div>
-
-      {/* Always show pagination controls if we're not on the first empty page */}
-      <PaginationControls
-        page={pageIndex}
-        isLoading={isLoading}
-        hasMore={hasNextPage}
-        onPageChange={async (direction) => {
-          if (direction === 'next') {
-            await fetchNextPage();
-          } else {
-            await fetchPreviousPage();
-          }
-        }}
-      />
-    </div>
+    </div> 
   );
 } 

@@ -18,7 +18,6 @@ export default function Page({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <ChainInitializer chainName={chain} />
-      <Navbar />
       <MainContent accountId={accountId} />
     </main>
   );

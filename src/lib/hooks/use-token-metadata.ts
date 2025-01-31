@@ -4,13 +4,13 @@ import { useChainClient } from './use-chain-client';
 
 export const metadataKeys = {
   all: ['metadata'] as const,
-  token: (blockchainRid: string, project: Project, collection: string, tokenId: bigint) => 
+  token: (blockchainRid: string, project: Project | undefined, collection: string, tokenId: bigint) => 
     [...metadataKeys.all, 'token', blockchainRid, project, collection, tokenId.toString()] as const,
 };
 
 export function useTokenMetadata(
   blockchainRid: string,
-  project: Project,
+  project: Project | undefined,
   collection: string,
   tokenId: bigint
 ) {
@@ -19,13 +19,13 @@ export function useTokenMetadata(
   return useQuery({
     queryKey: metadataKeys.token(blockchainRid, project, collection, tokenId),
     queryFn: async (): Promise<TokenMetadata | null> => {
-      if (!chainClient) {
+      if (!chainClient || !project) {
         return null;
       }
 
       const queryClient = createMegaYoursQueryClient(chainClient);
       return queryClient.getMetadata(project, collection, tokenId);
     },
-    enabled: !!chainClient && !isLoadingClient,
+    enabled: !!chainClient && !isLoadingClient && !!project,
   });
 } 

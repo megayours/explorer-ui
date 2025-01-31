@@ -16,9 +16,9 @@ export function MainContent({ accountId }: { accountId: string | null }) {
   }
 
   return (
-    <div className="mx-8 py-8">
+    <div className="mx-8 py-2">
       <div className="space-y-8 xl:space-y-0 xl:grid xl:grid-cols-12 xl:gap-8">
-        {/* Chain Information */}
+        {/* Chain Details */}
         <div className="xl:col-span-4">
           <div className="xl:sticky xl:top-24">
             <div className="bg-card border border-border rounded-xl p-6">
@@ -27,7 +27,7 @@ export function MainContent({ accountId }: { accountId: string | null }) {
           </div>
         </div>
 
-        {/* Account Overview */}
+        {/* Account Details */}
         <div className="xl:col-span-8 space-y-6">
         <div className="bg-card border border-border rounded-xl p-6">
           {/* Account Header */}
@@ -37,13 +37,11 @@ export function MainContent({ accountId }: { accountId: string | null }) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* NFTs */}
             <div className="lg:col-span-8 space-y-6">
-              <h2 className="text-xl font-semibold text-primary">Tokens</h2>
               <NFTGrid accountId={accountId} />
             </div>
 
             {/* Transfer History */}
             <div className="lg:col-span-4 space-y-6">
-              <h2 className="text-xl font-semibold text-primary">Transfer History</h2>
               <TransferHistory accountId={accountId} />
             </div>
             </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import { Navbar } from '@/components/navbar';
 import { MainContent } from '@/components/main-content';
 import { ChainInitializer } from '@/components/chain-initializer';
 import { use, useEffect, useState } from 'react';
@@ -31,7 +30,7 @@ export default function Page({ params }: PageProps) {
       
       // Only redirect if we have a valid accountId
       if (newAccountId) {
-        router.replace(`/${chain}/${newAccountId}`);
+        router.replace(`/${chain}/account/${newAccountId}`);
       }
     });
   }, [getAccountId, address, chain]);
@@ -39,7 +38,6 @@ export default function Page({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <ChainInitializer chainName={chain} />
-      <Navbar />
       <MainContent accountId={accountId} />
     </main>
   );

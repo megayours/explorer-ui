@@ -1,4 +1,4 @@
-import { TransferHistory, Paginator, createMegaYoursQueryClient } from "@megayours/sdk";
+import { TransferHistory, Paginator, createMegaYoursQueryClient, Project } from "@megayours/sdk";
 import { useChainClient } from './use-chain-client';
 import { usePaginator } from './use-paginator';
 import { useMemo, useCallback } from 'react';
@@ -9,6 +9,8 @@ export const transferKeys = {
     [...transferKeys.all, 'history', blockchainRid, accountId] as const,
   allHistory: (blockchainRid: string) => 
     [...transferKeys.all, 'all-history', blockchainRid] as const,
+  specificTokenHistory: (blockchainRid: string, tokenUid: string) => 
+    [...transferKeys.all, 'specific-token-history', blockchainRid, tokenUid] as const,
 };
 
 export function useTransferHistory(blockchainRid: string, accountId: string | null, pageSize: number = 10) {
@@ -45,9 +47,8 @@ export function useTransferHistory(blockchainRid: string, accountId: string | nu
     console.log('useTransferHistory', 'querying');
 
     const queryClient = createMegaYoursQueryClient(chainClient);
-    return queryClient.getTransferHistoryByAccount(
-      Buffer.from(accountId, 'hex'),
-      undefined,
+    return queryClient.getTransferHistory(
+      { accountId: Buffer.from(accountId, 'hex') },
       pageSize
     );
   }, [chainClient, accountId, pageSize, isLoadingClient]);
@@ -90,6 +91,30 @@ export function useAllTransferHistory(blockchainRid: string, pageSize: number = 
       const queryClient = createMegaYoursQueryClient(chainClient);
       console.log('useAllTransferHistory', 'querying');
       return queryClient.getAllTransferHistory(undefined, pageSize);
+    },
+    {
+      enabled: !!chainClient && !isLoadingClient,
+    }
+  );
+}
+
+export function useSpecificTokenTransferHistory(blockchainRid: string, tokenUid:string, pageSize: number = 10) {
+  const { data: chainClient, isLoading: isLoadingClient } = useChainClient(blockchainRid);
+  console.log('useSpecificTokenTransferHistory', blockchainRid, tokenUid, pageSize);
+  return usePaginator<TransferHistory>(
+    transferKeys.allHistory(blockchainRid),
+    async () => {
+      if (!chainClient) {
+        console.log('useSpecificTokenTransferHistory', 'no chain client');
+        return {
+          data: [],
+          fetchNext: () => Promise.resolve(null as unknown as Paginator<TransferHistory>)
+        } as Paginator<TransferHistory>;
+      }
+
+      const queryClient = createMegaYoursQueryClient(chainClient);
+      console.log('useSpecificTokenTransferHistory', 'querying');
+      return queryClient.getTransferHistory({ tokenUid: Buffer.from(tokenUid, 'hex') }, pageSize);
     },
     {
       enabled: !!chainClient && !isLoadingClient,

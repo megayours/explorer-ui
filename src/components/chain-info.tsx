@@ -86,7 +86,7 @@ export function ChainInfo({ fullWidth = false }: ChainInfoProps) {
   if (fullWidth) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
-        <div className="p-6">
+        <div className="bg-card border border-border rounded-xl p-6">
           <div className="space-y-6">
             <ChainDetails />
             {/* Modules Section */}
@@ -110,24 +110,28 @@ export function ChainInfo({ fullWidth = false }: ChainInfoProps) {
 
         {/* Recent Global Transfers */}
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-primary mb-4">Recent Chain Activity</h3>
-          <div className="space-y-4">
-            <div className="space-y-3">
-              {transfers.map((transfer) => (
-                <TransferHistoryEntry
-                  key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
-                  transfer={transfer}
-                />
-              ))}
-            </div>
-            <PaginationControls
-              page={page}
-              isLoading={isLoadingTransfers}
-              hasMore={hasMore}
-              onPageChange={async (direction) => {
-                await loadPage(direction);
-              }}
-            />
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-primary">Recent Chain Activity</h3>
+            {transfers.length > 0 && (hasMore || page > 1) && (
+              <PaginationControls
+                page={page}
+                isLoading={isLoadingTransfers}
+                hasMore={hasMore}
+                onPageChange={async (direction) => {
+                  await loadPage(direction);
+                }}
+                variant="subtle"
+              />
+            )}
+          </div>
+          <div className="space-y-3">
+            {transfers.map((transfer) => (
+              <TransferHistoryEntry
+                key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
+                transfer={transfer}
+                currentAccountId={transfer.account_id.toString('hex')}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -159,25 +163,29 @@ export function ChainInfo({ fullWidth = false }: ChainInfoProps) {
       </div>
 
       {/* Recent Global Transfers */}
-      <div className="p-2">
-        <h3 className="text-lg font-semibold text-primary mb-4">Recent Chain Activity</h3>
-        <div className="space-y-4">
-          <div className="space-y-3">
-            {transfers.map((transfer) => (
-              <TransferHistoryEntry
-                key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
-                transfer={transfer}
-              />
-            ))}
-          </div>
-          <PaginationControls
-            page={page}
-            isLoading={isLoadingTransfers}
-            hasMore={hasMore}
-            onPageChange={async (direction) => {
-              await loadPage(direction);
-            }}
-          />
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-primary">Recent Chain Activity</h3>
+          {transfers.length > 0 && (hasMore || page > 1) && (
+            <PaginationControls
+              page={page}
+              isLoading={isLoadingTransfers}
+              hasMore={hasMore}
+              onPageChange={async (direction) => {
+                await loadPage(direction);
+              }}
+              variant="subtle"
+            />
+          )}
+        </div>
+        <div className="space-y-3">
+          {transfers.map((transfer) => (
+            <TransferHistoryEntry
+              key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
+              transfer={transfer}
+              currentAccountId={transfer.account_id.toString('hex')}
+            />
+          ))}
         </div>
       </div>
     </div>

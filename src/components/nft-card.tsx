@@ -1,8 +1,9 @@
 'use client'
 
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { ArrowRightLeft, ExternalLink, Loader2 } from 'lucide-react'
+import { ArrowRightLeft, ExternalLink, Loader2, Info } from 'lucide-react'
 import { useNFTTransfer } from '@/lib/hooks/use-nft-transfer'
 import { useChain } from '@/lib/chain-switcher/chain-context'
 import { createMegaYoursQueryClient, TokenBalance, TokenMetadata } from '@megayours/sdk'
@@ -11,6 +12,7 @@ import { env } from '@/env'
 import dapps from '@/config/dapps'
 import { useMetadataCache } from '@/lib/hooks/use-metadata-cache'
 import { JsonViewer } from './json-viewer'
+import Link from 'next/link'
 
 type NFTCardProps = {
   nft: TokenBalance
@@ -75,6 +77,7 @@ function PropertyValue({ value }: { value: unknown }) {
 }
 
 export function NFTCard({ nft, onRefresh, onTransferSuccess, isOwner }: NFTCardProps) {
+  const router = useRouter();
   const [isSelectingChain, setIsSelectingChain] = useState(false)
   const [targetChain, setTargetChain] = useState<typeof dapps[0] | null>(null)
   const [metadata, setMetadata] = useState<TokenMetadata | null>(null)
@@ -165,13 +168,15 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess, isOwner }: NFTCardP
             <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
           </div>
         )}
-        <Image
-          src={imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/')}
-          alt={name}
-          width={400}
-          height={300}
-          className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-300"
-        />
+        <Link href={`/${selectedChain.blockchainRid}/token/${nft.uid.toString('hex')}`}>
+          <Image
+            src={imageUrl.replace('ipfs://', 'https://ipfs.io/ipfs/')}
+            alt={name}
+            width={400}
+            height={300}
+            className="object-cover w-full h-full transform group-hover:scale-105 transition-transform duration-300"
+          />
+        </Link>
       </div>
 
       <div className="p-4">
@@ -214,19 +219,19 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess, isOwner }: NFTCardP
           </div>
         )}
 
-        {isOwner && (
-          <div className="relative">
+        <div className="flex gap-2">
+          {isOwner && (
             <button
               onClick={() => setIsSelectingChain(true)}
               disabled={isTransferring}
-              className="w-full px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90
-                     border border-border transition-all duration-300 text-sm font-medium
-                     disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 rounded-lg bg-secondary text-secondary-foreground hover:bg-secondary/90
+                       border border-border transition-all duration-300 text-sm font-medium
+                       disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isTransferring ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Transferring to {targetChain?.name}...
+                  Transferring...
                 </>
               ) : (
                 <>
@@ -235,33 +240,33 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess, isOwner }: NFTCardP
                 </>
               )}
             </button>
+          )}
+        </div>
 
-            {isSelectingChain && !isTransferring && (
-              <>
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setIsSelectingChain(false)}
-                />
-                <div className="absolute bottom-full mb-2 left-0 right-0 rounded-lg overflow-hidden border border-border bg-card shadow-md z-50">
-                  <div className="py-1">
-                    {availableChains.map((chain) => (
-                      <button
-                        key={chain.blockchainRid}
-                        onClick={() => handleTransfer(chain)}
-                        disabled={isTransferring}
-                        className="w-full px-4 py-2 text-left hover:bg-muted transition-colors
-                               text-text-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {chain.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+        {isSelectingChain && !isTransferring && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setIsSelectingChain(false)}
+            />
+            <div className="absolute bottom-full mb-2 left-0 right-0 rounded-lg overflow-hidden border border-border bg-card shadow-md z-50">
+              <div className="py-1">
+                {availableChains.map((chain) => (
+                  <button
+                    key={chain.blockchainRid}
+                    onClick={() => handleTransfer(chain)}
+                    disabled={isTransferring}
+                    className="w-full px-4 py-2 text-left hover:bg-muted transition-colors
+                             text-text-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {chain.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </div>
-    </div>
+    </div >
   )
 }

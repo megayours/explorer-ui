@@ -115,30 +115,35 @@ export function TransferHistory({ accountId }: { accountId: string | null }) {
 
   return (
     <div className="space-y-4">
-      {/* Show transfers if we have any */}
-      <div className="space-y-4">
-        {transfers?.data.map((transfer) => (
-          <TransferHistoryEntry
-          key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
-          transfer={transfer}
-          displayAccountAvatar={false}
-        />
-        ))}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-primary">Transfers</h2>
+        {transfers?.data.length > 0 && (hasNextPage || hasPreviousPage || pageIndex > 1) && (
+          <PaginationControls
+            page={pageIndex}
+            isLoading={isLoading}
+            hasMore={hasNextPage}
+            onPageChange={async (direction) => {
+              if (direction === 'next') {
+                await fetchNextPage();
+              } else {
+                await fetchPreviousPage();
+              }
+            }}
+            variant="subtle"
+          />
+        )}
       </div>
 
-      {/* Always show pagination controls if we're not on the first empty page */}
-      <PaginationControls
-        page={pageIndex}
-        isLoading={isLoading}
-        hasMore={hasNextPage}
-        onPageChange={async (direction) => {
-          if (direction === 'next') {
-            await fetchNextPage();
-          } else {
-            await fetchPreviousPage();
-          }
-        }}
-      />
+      {/* Show transfers if we have any */}
+      <div className="space-y-3">
+        {transfers?.data.map((transfer) => (
+          <TransferHistoryEntry
+            key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
+            transfer={transfer}
+            displayAccountAvatar={false}
+          />
+        ))}
+      </div>
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ClientProviders } from "./client-providers";
 import { use } from "react";
+import { Navbar } from "@/components/navbar";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 
 const geistSans = Geist({
   subsets: ["latin"],
@@ -47,6 +49,8 @@ export default function RootLayout({ children, params }: RootLayoutProps) {
       <head />
       <body suppressHydrationWarning className="min-h-screen bg-background text-foreground">
         <ClientProviders initialBlockchainRid={chain}>
+          <Navbar />
+          <Breadcrumbs />
           {children}
         </ClientProviders>
       </body>

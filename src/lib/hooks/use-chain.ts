@@ -151,7 +151,7 @@ export function useGammaChain(): [GammaChainActions, GammaChainState] {
       try {
         const client = await getClientWhenReady();
         const queryClient = createMegaYoursQueryClient(client);
-        return await queryClient.getTransferHistoryByAccount(Buffer.from(accountId, 'hex'), undefined, pageSize);
+        return await queryClient.getTransferHistory({ accountId: Buffer.from(accountId, 'hex') }, pageSize);
       } catch (error) {
         console.error("Failed to fetch account transfer history:", error);
         return {

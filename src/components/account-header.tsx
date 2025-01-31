@@ -15,7 +15,7 @@ export function AccountHeader({ accountId }: AccountHeaderProps) {
           <User className="h-6 w-6 text-text-secondary" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-medium text-text-primary mb-1">Account Overview</h1>
+          <h1 className="text-lg font-medium text-text-primary mb-1">Account Details</h1>
           <div className="flex items-center gap-2">
             <CopyableId id={accountId} />
           </div>

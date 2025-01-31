@@ -66,7 +66,7 @@ export function Navbar() {
             <div className="p-6 space-y-6">
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-text-secondary">Account</h3>
-                <ConnectButton isMobile />
+                <ConnectButton />
               </div>
             </div>
           </div>
