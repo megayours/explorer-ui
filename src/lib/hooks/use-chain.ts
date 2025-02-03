@@ -96,7 +96,7 @@ export function useGammaChain(): [GammaChainActions, GammaChainState] {
         console.log("Client ready, creating query client");
         const queryClient = createMegaYoursQueryClient(client);
         console.log("Fetching tokens");
-        const paginator = await queryClient.getTokenBalances({ accountId: Buffer.from(accountId, 'hex') }, pageSize);
+        const paginator = await queryClient.getTokenBalances({ account_id: Buffer.from(accountId, 'hex') }, pageSize);
         console.log("Tokens fetched successfully");
         return paginator;
       } catch (error) {
@@ -131,7 +131,7 @@ export function useGammaChain(): [GammaChainActions, GammaChainState] {
       try {
         const client = await getClientWhenReady();
         const queryClient = createMegaYoursQueryClient(client);
-        return await queryClient.getAllTransferHistory(undefined, pageSize);
+        return await queryClient.getTransferHistory({}, pageSize);
       } catch (error) {
         console.error("Failed to fetch transfer history:", error);
         return {
@@ -151,7 +151,7 @@ export function useGammaChain(): [GammaChainActions, GammaChainState] {
       try {
         const client = await getClientWhenReady();
         const queryClient = createMegaYoursQueryClient(client);
-        return await queryClient.getTransferHistory({ accountId: Buffer.from(accountId, 'hex') }, pageSize);
+        return await queryClient.getTransferHistory({ account_id: Buffer.from(accountId, 'hex') }, pageSize);
       } catch (error) {
         console.error("Failed to fetch account transfer history:", error);
         return {
