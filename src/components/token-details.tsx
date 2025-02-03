@@ -11,8 +11,12 @@ import { useSpecificTokenTransferHistory } from '@/lib/hooks/use-transfer-histor
 import { PaginationControls } from './pagination-controls';
 import { JsonViewer } from './json-viewer';
 import Image from 'next/image';
+import { useOwnerships } from '@/lib/hooks/use-ownerships';
+import Link from 'next/link';
+import type { TokenBalance } from '@megayours/sdk';
 
 const PAGE_SIZE = 10;
+const OWNERSHIP_PAGE_SIZE = 5;
 
 interface TokenDetailsProps {
   tokenUid: string;
@@ -39,14 +43,41 @@ function AttributeValue({ value }: { value: unknown }) {
   );
 }
 
+function OwnershipEntry({ ownership }: { ownership: TokenBalance }) {
+  const { selectedChain } = useChain();
+  const accountId = ownership.account_id.toString('hex');
+  const accountPageUrl = `/${selectedChain.blockchainRid}/account/${accountId}`;
+  const accountAvatarUrl = `https://api.dicebear.com/7.x/identicon/svg?seed=${accountId}&backgroundColor=transparent`;
+
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg bg-background border border-border">
+      <div className="flex items-center gap-3">
+        <Link
+          href={accountPageUrl}
+          className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-background-light border border-border hover:border-accent-blue hover:scale-105 transition-all"
+          title={`View account ${accountId.slice(0, 6)}...${accountId.slice(-4)}`}
+        >
+          <img
+            src={accountAvatarUrl}
+            alt={`Avatar for ${accountId}`}
+            className="w-full h-full"
+          />
+        </Link>
+        <CopyableId id={accountId} />
+      </div>
+      <div className="text-sm font-medium text-text-primary">
+        Balance: {ownership.amount.toString()}
+      </div>
+    </div>
+  );
+}
+
 export function TokenDetails({ tokenUid }: TokenDetailsProps) {
   const { selectedChain } = useChain();
   const { data: token, isLoading: isLoadingToken } = useNFT(
     selectedChain.blockchainRid,
     tokenUid
   );
-
-  console.log('Token: ', token);
 
   const { data: metadata, isLoading: isLoadingMetadata } = useTokenMetadata(
     selectedChain.blockchainRid,
@@ -55,15 +86,25 @@ export function TokenDetails({ tokenUid }: TokenDetailsProps) {
     token?.id ?? BigInt(0)
   );
 
-  const {
-    data: transfers,
+  const { 
+    data: transfers, 
     isLoading: isLoadingTransfers,
-    fetchNextPage,
-    fetchPreviousPage,
-    hasNextPage,
-    hasPreviousPage,
-    pageIndex
+    fetchNextPage: fetchTransfersNextPage,
+    fetchPreviousPage: fetchTransfersPreviousPage,
+    hasNextPage: hasTransfersNextPage,
+    hasPreviousPage: hasTransfersPreviousPage,
+    pageIndex: transfersPageIndex
   } = useSpecificTokenTransferHistory(selectedChain.blockchainRid, tokenUid, PAGE_SIZE);
+
+  const { 
+    data: ownerships, 
+    isLoading: isLoadingOwnerships,
+    fetchNextPage: fetchOwnershipsNextPage,
+    fetchPreviousPage: fetchOwnershipsPreviousPage,
+    hasNextPage: hasOwnershipsNextPage,
+    hasPreviousPage: hasOwnershipsPreviousPage,
+    pageIndex: ownershipsPageIndex
+  } = useOwnerships(selectedChain.blockchainRid, token, OWNERSHIP_PAGE_SIZE);
 
   if (isLoadingToken) {
     return (
@@ -132,6 +173,46 @@ export function TokenDetails({ tokenUid }: TokenDetailsProps) {
         </div>
       </div>
 
+      {/* Token Ownerships */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-primary">Owners</h2>
+          {ownerships?.data.length > 0 && (hasOwnershipsNextPage || hasOwnershipsPreviousPage || ownershipsPageIndex > 1) && (
+            <PaginationControls
+              page={ownershipsPageIndex}
+              isLoading={isLoadingOwnerships}
+              hasMore={hasOwnershipsNextPage}
+              onPageChange={async (direction) => {
+                if (direction === 'next') {
+                  await fetchOwnershipsNextPage();
+                } else {
+                  await fetchOwnershipsPreviousPage();
+                }
+              }}
+              variant="subtle"
+            />
+          )}
+        </div>
+        {isLoadingOwnerships ? (
+          <div className="flex items-center justify-center h-24">
+            <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+          </div>
+        ) : !ownerships?.data.length ? (
+          <div className="text-center py-4">
+            <p className="text-text-secondary">No owners found</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {ownerships.data.map((ownership) => (
+              <OwnershipEntry
+                key={ownership.account_id.toString('hex')}
+                ownership={ownership}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Token Description */}
       <div className="space-y-2">
         <h2 className="text-lg font-semibold text-primary">Description</h2>
@@ -162,16 +243,16 @@ export function TokenDetails({ tokenUid }: TokenDetailsProps) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-primary">Transfer History</h2>
-          {transfers?.data.length > 0 && (hasNextPage || hasPreviousPage || pageIndex > 1) && (
+          {transfers?.data.length > 0 && (hasTransfersNextPage || hasTransfersPreviousPage || transfersPageIndex > 1) && (
             <PaginationControls
-              page={pageIndex}
+              page={transfersPageIndex}
               isLoading={isLoadingTransfers}
-              hasMore={hasNextPage}
+              hasMore={hasTransfersNextPage}
               onPageChange={async (direction) => {
                 if (direction === 'next') {
-                  await fetchNextPage();
+                  await fetchTransfersNextPage();
                 } else {
-                  await fetchPreviousPage();
+                  await fetchTransfersPreviousPage();
                 }
               }}
               variant="subtle"
@@ -183,7 +264,7 @@ export function TokenDetails({ tokenUid }: TokenDetailsProps) {
           <div className="flex items-center justify-center min-h-[200px]">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
           </div>
-        ) : !transfers?.data.length && pageIndex === 1 ? (
+        ) : !transfers?.data.length && transfersPageIndex === 1 ? (
           <div className="text-center py-8">
             <p className="text-text-secondary">No transfers found</p>
           </div>
@@ -191,7 +272,7 @@ export function TokenDetails({ tokenUid }: TokenDetailsProps) {
           <div className="space-y-3">
             {transfers?.data.map((transfer) => (
               <TransferHistoryEntry
-                key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}`}
+                key={`${transfer.token.collection}-${transfer.token.id}-${transfer.op_index}-${Math.random() * 10000}`}
                 transfer={transfer}
                 displayAccountAvatar={false}
                 currentAccountId={transfer.account_id.toString('hex')}
