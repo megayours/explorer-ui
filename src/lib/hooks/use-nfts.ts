@@ -44,7 +44,7 @@ export function useNFTs(blockchainRid: string, accountId: string | null, pageSiz
 
     const queryClient = createMegaYoursQueryClient(chainClient);
     return queryClient.getTokenBalances({
-      accountId: Buffer.from(accountId, 'hex'),
+      account_id: Buffer.from(accountId, 'hex'),
     }, pageSize);
   }, [chainClient, accountId, pageSize, isLoadingClient]);
 

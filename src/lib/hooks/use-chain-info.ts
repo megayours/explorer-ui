@@ -15,7 +15,7 @@ export function useChainInfo() {
     setIsLoadingModules(true);
     try {
       const queryClient = createMegaYoursQueryClient(chainClient);
-      const supportedModules = await queryClient.getSupportedModules();
+      const supportedModules = (await queryClient.getSupportedModules()).map((m) => m.name);
       setModules(supportedModules);
     } catch (error) {
       console.error('Failed to fetch modules:', error);
@@ -34,7 +34,7 @@ export function useChainInfo() {
     }
 
     const queryClient = createMegaYoursQueryClient(chainClient);
-    return queryClient.getAllTransferHistory(undefined, pageSize);
+    return queryClient.getTransferHistory({}, pageSize);
   }, [chainClient]);
 
   useEffect(() => {

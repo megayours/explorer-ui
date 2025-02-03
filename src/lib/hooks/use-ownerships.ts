@@ -43,7 +43,7 @@ export function useOwnerships(blockchainRid: string, token: Token | null | undef
     console.log('useOwnerships', 'querying');
 
     const queryClient = createMegaYoursQueryClient(chainClient);
-    return queryClient.getTokenBalances({ project: token.project, collection: token.collection, tokenId: token.id }, pageSize);
+    return queryClient.getTokenBalances({ project: token.project, collection: token.collection, token_id: token.id }, pageSize);
   }, [chainClient, token, pageSize, isLoadingClient]);
 
   const isEnabled = useMemo(() => {

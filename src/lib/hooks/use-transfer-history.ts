@@ -48,7 +48,7 @@ export function useTransferHistory(blockchainRid: string, accountId: string | nu
 
     const queryClient = createMegaYoursQueryClient(chainClient);
     return queryClient.getTransferHistory(
-      { accountId: Buffer.from(accountId, 'hex') },
+      { account_id: Buffer.from(accountId, 'hex') },
       pageSize
     );
   }, [chainClient, accountId, pageSize, isLoadingClient]);
@@ -90,7 +90,7 @@ export function useAllTransferHistory(blockchainRid: string, pageSize: number = 
 
       const queryClient = createMegaYoursQueryClient(chainClient);
       console.log('useAllTransferHistory', 'querying');
-      return queryClient.getAllTransferHistory(undefined, pageSize);
+      return queryClient.getTransferHistory({}, pageSize);
     },
     {
       enabled: !!chainClient && !isLoadingClient,
@@ -114,7 +114,7 @@ export function useSpecificTokenTransferHistory(blockchainRid: string, tokenUid:
 
       const queryClient = createMegaYoursQueryClient(chainClient);
       console.log('useSpecificTokenTransferHistory', 'querying');
-      return queryClient.getTransferHistory({ tokenUid: Buffer.from(tokenUid, 'hex') }, pageSize);
+      return queryClient.getTransferHistory({ token_uid: Buffer.from(tokenUid, 'hex') }, pageSize);
     },
     {
       enabled: !!chainClient && !isLoadingClient,
