@@ -22,7 +22,7 @@ export function useTokenBalances(blockchainRid: string, accountId: string | null
       }
 
       const queryClient = createMegaYoursQueryClient(chainClient);
-      return queryClient.getTokenBalances({ accountId: Buffer.from(accountId, 'hex') }, pageSize);
+      return queryClient.getTokenBalances({ account_id: Buffer.from(accountId, 'hex') }, pageSize);
     },
     enabled: !!chainClient && !!accountId && !isLoadingClient,
   });
