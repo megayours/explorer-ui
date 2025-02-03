@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
 import { useChainInfo } from '@/lib/hooks/use-chain-info';
 import { usePaginatedData } from '@/lib/hooks/use-paginated-data';
 import { useEffect, useCallback } from 'react';
@@ -10,6 +10,7 @@ import { CopyableId } from '@/components/copyable-id';
 import { Button } from './ui/button';
 import { TransferHistoryEntry } from './transfer-history-entry';
 import { PaginationControls } from './pagination-controls';
+import { env } from '@/env';
 
 const PAGE_SIZE = 10;
 
@@ -95,12 +96,18 @@ export function ChainInfo({ fullWidth = false }: ChainInfoProps) {
                 <h3 className="text-sm font-medium text-text-secondary mb-2">Supported Modules</h3>
                 <div className="flex flex-wrap gap-2">
                   {modules.map((module, index) => (
-                    <span
+                    <a
                       key={index}
-                      className="px-2 py-1 text-xs font-medium rounded-md bg-secondary/10 text-secondary border border-secondary/20"
+                      href={`${env.NEXT_PUBLIC_MEGA_CHAIN_DASHBOARD_URL}/module/${module}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md 
+                                bg-secondary/10 text-secondary border border-secondary/20 
+                                hover:bg-secondary/20 hover:border-secondary/30 transition-all duration-200"
                     >
                       {module}
-                    </span>
+                      <ExternalLink className="h-3 w-3 text-secondary/70" />
+                    </a>
                   ))}
                 </div>
               </div>
@@ -149,12 +156,18 @@ export function ChainInfo({ fullWidth = false }: ChainInfoProps) {
               <h3 className="text-sm font-medium text-text-secondary mb-2">Supported Modules</h3>
               <div className="flex flex-wrap gap-2">
                 {modules.map((module, index) => (
-                  <span
+                  <a
                     key={index}
-                    className="px-2 py-1 text-xs font-medium rounded-md bg-secondary/10 text-secondary border border-secondary/20"
+                    href={`${env.NEXT_PUBLIC_MEGA_CHAIN_DASHBOARD_URL}/module/${module}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium rounded-md 
+                              bg-secondary/10 text-secondary border border-secondary/20 
+                              hover:bg-secondary/20 hover:border-secondary/30 transition-all duration-200"
                   >
                     {module}
-                  </span>
+                    <ExternalLink className="h-3 w-3 text-secondary/70" />
+                  </a>
                 ))}
               </div>
             </div>
