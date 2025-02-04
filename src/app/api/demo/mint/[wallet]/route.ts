@@ -1,51 +1,17 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
+import { ethers } from 'ethers';
+import { env } from '@/env';
 
-// In-memory storage for rate limiting
-// Note: This will reset when the serverless function cold starts
-const walletLimits = new Map<string, number>();  // wallet -> timestamp
-const ipLimits = new Map<string, number>();      // ip -> timestamp
+// ABI for the mint function
+const ABI = [
+  "function mint(address to) external"
+];
 
-const WALLET_COOLDOWN = 60 * 60 * 1000;  // 1 hour in ms
-const IP_COOLDOWN = 10 * 60 * 1000;      // 10 minutes in ms
+// Polygon Amoy testnet RPC URL
+const RPC_URL = "https://rpc-amoy.polygon.technology";
 
-function canMint(wallet: string, ip: string): { 
-  canMint: boolean; 
-  walletReset?: number;
-  ipReset?: number;
-} {
-  const now = Date.now();
-  const walletLastMint = walletLimits.get(wallet) || 0;
-  const ipLastMint = ipLimits.get(ip) || 0;
-
-  const walletTimeLeft = Math.max(0, WALLET_COOLDOWN - (now - walletLastMint));
-  const ipTimeLeft = Math.max(0, IP_COOLDOWN - (now - ipLastMint));
-
-  return {
-    canMint: walletTimeLeft === 0 && ipTimeLeft === 0,
-    walletReset: walletTimeLeft > 0 ? now + walletTimeLeft : undefined,
-    ipReset: ipTimeLeft > 0 ? now + ipTimeLeft : undefined,
-  };
-}
-
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ wallet: string }> }
-) {
-  try {
-    const headersList = await headers();
-    const ip = headersList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const wallet = (await params).wallet.toLowerCase();
-
-    const status = canMint(wallet, ip);
-    return NextResponse.json(status);
-  } catch (error) {
-    console.error('Error checking mint status:', error);
-    return NextResponse.json(
-      { error: 'Failed to check mint status' },
-      { status: 500 }
-    );
-  }
+export async function GET() {
+  return NextResponse.json({ success: true });
 }
 
 export async function POST(
@@ -53,35 +19,35 @@ export async function POST(
   { params }: { params: Promise<{ wallet: string }> }
 ) {
   try {
-    const headersList = await headers();
-    const ip = headersList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const wallet = (await params).wallet.toLowerCase();
-
-    const status = canMint(wallet, ip);
+    const { wallet } = await params;
     
-    if (!status.canMint) {
-      return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded',
-          walletReset: status.walletReset,
-          ipReset: status.ipReset,
-        },
-        { status: 429 }
-      );
-    }
+    // Set up provider and wallet
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    const signer = new ethers.Wallet(env.MINT_PRIVATE_KEY, provider);
+    
+    // Create contract instance
+    const contract = new ethers.Contract(
+      env.MINT_CONTRACT_ADDRESS,
+      ABI,
+      signer
+    );
 
-    // Set the cooldown timers
-    const now = Date.now();
-    walletLimits.set(wallet, now);
-    ipLimits.set(ip, now);
-
-    // For now, just return success since we're only implementing rate limiting
-    return NextResponse.json({ success: true });
+    // Call mint function
+    const tx = await contract.mint(wallet);
+    
+    // Wait for transaction to be mined
+    const receipt = await tx.wait();
+    
+    return NextResponse.json({ 
+      success: true,
+      hash: receipt.hash
+    });
+    
   } catch (error) {
-    console.error('Error processing mint:', error);
+    console.error('Error minting:', error);
     return NextResponse.json(
-      { error: 'Failed to process mint' },
+      { error: 'Failed to mint token' },
       { status: 500 }
     );
   }
-} 
+}

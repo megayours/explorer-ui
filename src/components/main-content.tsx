@@ -6,109 +6,136 @@ import { AccountHeader } from './account-header';
 import { ChainInfo } from './chain-info';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
+import { Button } from './ui/button';
 
-function MintBanner() {
-  const { address } = useAccount();
-  const [mounted, setMounted] = useState(false);
-  const [canMint, setCanMint] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isMinting, setIsMinting] = useState<boolean>(false);
+const WALLET_COOLDOWN = 60 * 60 * 1000;  // 1 hour in ms
+
+function getStoredMintTime(wallet: string): number {
+  const stored = localStorage.getItem(`lastMint_${wallet}`);
+  return stored ? parseInt(stored, 10) : 0;
+}
+
+function setStoredMintTime(wallet: string) {
+  localStorage.setItem(`lastMint_${wallet}`, Date.now().toString());
+}
+
+function canMint(wallet: string): { canMint: boolean; timeLeft: number } {
+  const now = Date.now();
+  const lastMint = getStoredMintTime(wallet);
+  const timeLeft = Math.max(0, WALLET_COOLDOWN - (now - lastMint));
+
+  return {
+    canMint: timeLeft === 0,
+    timeLeft,
+  };
+}
+
+function MintBanner({ address }: { address: string }) {
+  const [isMinting, setIsMinting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState(-1);
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Handle mounting state to prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const interval = setInterval(() => {
+      const status = canMint(address);
+      setTimeLeft(status.timeLeft);
+    }, 1000);
 
-  useEffect(() => {
-    if (!mounted || !address) return;
+    return () => clearInterval(interval);
+  }, [address]);
 
-    const checkMintStatus = async () => {
-      try {
-        setIsLoading(true);
-        const response = await fetch(`/api/demo/mint/${address}`);
-        const data = await response.json();
-        setCanMint(data.canMint);
-        setError(null);
-      } catch (err) {
-        console.error('Error checking mint status:', err);
-        setError('Failed to check mint status');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void checkMintStatus();
-  }, [mounted, address]);
+  if (!mounted) return null;
 
   const handleMint = async () => {
-    if (!address || !canMint) return;
-
     try {
       setIsMinting(true);
+      setError(null);
+      setTxHash(null);
+
       const response = await fetch(`/api/demo/mint/${address}`, {
         method: 'POST',
       });
-      
+
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
         throw new Error(data.error || 'Failed to mint');
       }
 
-      // Refresh mint status
-      const statusResponse = await fetch(`/api/demo/mint/${address}`);
-      const statusData = await statusResponse.json();
-      setCanMint(statusData.canMint);
-      setError(null);
+      setStoredMintTime(address);
+      setTxHash(data.hash);
+      const status = canMint(address);
+      setTimeLeft(status.timeLeft);
+
     } catch (err) {
-      console.error('Error minting:', err);
       setError(err instanceof Error ? err.message : 'Failed to mint');
     } finally {
       setIsMinting(false);
     }
   };
 
-  // Don't render anything during server-side rendering or before mounting
-  if (!mounted) return null;
-  
-  // Don't render if no wallet is connected or if can't mint and no error
-  if (!address || (!isLoading && !canMint && !error)) return null;
+  const mintStatus = canMint(address);
+  const formattedTimeLeft = Math.ceil(timeLeft / 1000 / 60); // minutes
+
+  if (timeLeft === -1) {
+    return null;
+  }
 
   return (
-    <div className="bg-card border border-border rounded-xl p-6 mb-6">
+    <div className="mb-6 rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-primary">Demo Mint</h3>
-          <p className="text-sm text-text-secondary">
-            {isLoading ? 'Checking mint status...' :
-             error ? error :
-             canMint ? 'You can mint a demo NFT now!' :
-             'Please wait for the cooldown to end'}
+          <h4 className="text-sm font-medium leading-none">Demo Minting</h4>
+          <p className="text-sm text-muted-foreground">
+            {mintStatus.canMint
+              ? 'You can mint now!'
+              : `You can mint again in ${formattedTimeLeft} minutes`}
           </p>
-        </div>
-        <button
-          onClick={handleMint}
-          disabled={isLoading || isMinting || !canMint || !!error}
-          className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90
-                   disabled:opacity-50 disabled:cursor-not-allowed
-                   transition-all duration-200 flex items-center gap-2"
-        >
-          {isMinting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Minting...
-            </>
-          ) : (
-            'Mint'
+          {error && (
+            <p className="text-sm text-destructive">{error}</p>
           )}
-        </button>
+          {txHash && (
+            <div>
+              <a
+                href={`https://www.oklink.com/amoy/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:text-primary/80 flex items-center gap-2"
+              >
+                View Transaction <ExternalLink className="h-3 w-3" />
+              </a>
+              <p className="text-sm text-muted-foreground mt-2">
+                Your token should show up in the PFP Chain Demo in a few minutes.
+              </p>
+            </div>
+          )}
+        </div>
+        <Button
+          onClick={handleMint}
+          disabled={!mintStatus.canMint || isMinting}
+        >
+          {isMinting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Mint
+        </Button>
       </div>
     </div>
   );
 }
 
 export function MainContent({ accountId }: { accountId: string | null }) {
+  const { address } = useAccount();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   if (!accountId) {
     return (
       <div className="mx-8 py-8">
@@ -131,7 +158,7 @@ export function MainContent({ accountId }: { accountId: string | null }) {
 
         {/* Account Details */}
         <div className="xl:col-span-8 space-y-6">
-          <MintBanner />
+          {address && <MintBanner address={address} />}
           <div className="bg-card border border-border rounded-xl p-6">
             {/* Account Header */}
             <AccountHeader accountId={accountId} />
