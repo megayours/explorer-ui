@@ -30,12 +30,12 @@ function canMint(wallet: string, ip: string): {
 
 export async function GET(
   request: Request,
-  { params }: { params: { wallet: string } }
+  { params }: { params: Promise<{ wallet: string }> }
 ) {
   try {
     const headersList = await headers();
     const ip = headersList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const wallet = params.wallet.toLowerCase();
+    const wallet = (await params).wallet.toLowerCase();
 
     const status = canMint(wallet, ip);
     return NextResponse.json(status);
@@ -50,12 +50,12 @@ export async function GET(
 
 export async function POST(
   request: Request,
-  { params }: { params: { wallet: string } }
+  { params }: { params: Promise<{ wallet: string }> }
 ) {
   try {
     const headersList = await headers();
     const ip = headersList.get('x-forwarded-for')?.split(',')[0] || 'unknown';
-    const wallet = params.wallet.toLowerCase();
+    const wallet = (await params).wallet.toLowerCase();
 
     const status = canMint(wallet, ip);
     
