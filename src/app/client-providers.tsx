@@ -10,7 +10,6 @@ import {
 import { ConnectKitProvider } from "connectkit";
 import type React from "react";
 import { useState, useEffect } from "react";
-import type { State as WagmiState } from "wagmi";
 import { WagmiProvider } from "wagmi";
 import { getConfig as getWagmiConfig } from "@/config/wagmi-config";
 import { ChromiaProvider } from "@/lib/chromia-connect/chromia-context";

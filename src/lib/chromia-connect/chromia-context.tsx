@@ -12,6 +12,7 @@ import {
   registerAccount,
   registrationStrategy,
   createInMemoryLoginKeyStore,
+  createLocalStorageLoginKeyStore,
 } from "@chromia/ft4";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { IClient } from "postchain-client";
@@ -43,7 +44,7 @@ const AuthFlags = ["T"];
 type ChromiaProviderProps = { config: ChromiaConfig };
 
 const hasActiveSessionStorageLogin = async (account: Account) => {
-  const loginKs = createSessionStorageLoginKeyStore();
+  const loginKs = createLocalStorageLoginKeyStore();
   const sessionKs = await loginKs.getKeyStore(account.id);
 
   const id = sessionKs?.id;
@@ -111,7 +112,7 @@ export const ChromiaProvider: React.FunctionComponent<
           );
           const { session, logout } = await evmKeyStoreInteractor.login({
             accountId: account.id,
-            loginKeyStore: createSessionStorageLoginKeyStore(),
+            loginKeyStore: createLocalStorageLoginKeyStore(),
             config: {
               rules: ttlLoginRule(hours(12)),
               flags: AuthFlags,

@@ -161,7 +161,7 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess, isOwner }: NFTCardP
   }
 
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-card border border-border hover:border-border-hover transition-all duration-300 shadow-sm">
+    <div className="group relative overflow-visible rounded-xl bg-card border border-border hover:border-border-hover transition-all duration-300 shadow-sm">
       <div className="aspect-[4/3] overflow-hidden relative">
         {isLoadingMetadata && (
           <div className="absolute inset-0 flex items-center justify-center bg-background/50">
@@ -219,7 +219,7 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess, isOwner }: NFTCardP
           </div>
         )}
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 relative z-50">
           {isOwner && (
             <button
               onClick={() => setIsSelectingChain(true)}
@@ -241,32 +241,32 @@ export function NFTCard({ nft, onRefresh, onTransferSuccess, isOwner }: NFTCardP
               )}
             </button>
           )}
-        </div>
 
-        {isSelectingChain && !isTransferring && (
-          <>
-            <div
-              className="fixed inset-0 z-40"
-              onClick={() => setIsSelectingChain(false)}
-            />
-            <div className="absolute bottom-full mb-2 left-0 right-0 rounded-lg overflow-hidden border border-border bg-card shadow-md z-50">
-              <div className="py-1">
-                {availableChains.map((chain) => (
-                  <button
-                    key={chain.blockchainRid}
-                    onClick={() => handleTransfer(chain)}
-                    disabled={isTransferring}
-                    className="w-full px-4 py-2 text-left hover:bg-muted transition-colors
-                             text-text-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {chain.name}
-                  </button>
-                ))}
+          {isSelectingChain && !isTransferring && (
+            <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 z-[60]">
+              <div
+                className="fixed inset-0 z-40 bg-black/20"
+                onClick={() => setIsSelectingChain(false)}
+              />
+              <div className="relative rounded-lg overflow-hidden border border-border bg-card shadow-md z-50">
+                <div className="py-1">
+                  {availableChains.map((chain) => (
+                    <button
+                      key={chain.blockchainRid}
+                      onClick={() => handleTransfer(chain)}
+                      disabled={isTransferring}
+                      className="w-full px-4 py-2 text-left hover:bg-muted transition-colors
+                               text-text-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {chain.name}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
-    </div >
+    </div>
   )
 }
